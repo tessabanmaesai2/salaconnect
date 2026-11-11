@@ -4,39 +4,39 @@
     "username": "thedatazero",
     "name": "ผู้ดูแลระบบสูงสุด (Master Key)",
     "role": "Super Admin",
-    "password": "Kn123990002466119842528",
+    "password": "pbkdf2$100000$a0bfee34306fdf91c4ccaf1295bfdea4$2e071a5eeb63f94e827018a1678aa38e5f41f682957be0680203edccc5721d0a9bdebac3c14947665f2d32876608b8ddd557403b3bba508ea7d2ec6a2fbfc4ff",
     "status": "Active",
     "createdAt": "2026-11-11T05:48:15.727Z",
-    "updatedAt": "2026-11-11T05:48:15.728Z"
+    "updatedAt": "2026-11-11T08:01:08.821Z"
   },
   {
     "id": 2,
     "username": "admin",
     "name": "ผู้ดูแลระบบ (Admin)",
     "role": "Admin",
-    "password": "19842528",
+    "password": "pbkdf2$100000$c30509c9ddece9be5223df2c1665ffbc$b7813e5683a941e2a0f94b2cecb2cbf4358c08e3ab63972e85b1597de052dedce34637f4b9bef39addf94aba85919992ea3640bc3d379319531d554f93da47f4",
     "status": "Active",
     "createdAt": "2026-11-11T05:48:15.728Z",
-    "updatedAt": "2026-11-11T06:58:51.281Z"
+    "updatedAt": "2026-11-11T08:01:08.878Z"
   },
   {
     "id": 3,
     "username": "officer",
     "name": "เจ้าหน้าที่บันทึกข้อมูล (Officer)",
     "role": "Officer",
-    "password": "1234",
+    "password": "pbkdf2$100000$79f97e4d1f41b169e335bf77f8462429$a5313c0b9fc3ad0bbab228ca981ded0c7849735bc8aef2af86f7d01b9e69ca424f0521b26952f1fb178f093f9250c9f4529baf40abb0035f99b9990de24a6ddf",
     "status": "Active",
     "createdAt": "2026-11-11T05:48:15.728Z",
-    "updatedAt": "2026-11-11T05:48:15.728Z"
+    "updatedAt": "2026-11-11T08:01:08.933Z"
   },
   {
     "id": 4,
     "username": "viewer",
     "name": "ผู้บริหาร / สมาชิกสภาฯ (Viewer)",
     "role": "Viewer",
-    "password": "1234",
+    "password": "pbkdf2$100000$ed9c2147383bbbd45cd7fc6dee8fc3e0$04ce4df02c853eb4ea2fdb844fdc27d6e5e94bc793c614122d67eb050db50853838b69c2d3f4e2b55bc05648891d7b1f253e3ad7fb9dea4046538a8b5c0c452e",
     "status": "Active",
     "createdAt": "2026-11-11T05:48:15.728Z",
-    "updatedAt": "2026-11-11T05:48:15.728Z"
+    "updatedAt": "2026-11-11T08:01:08.989Z"
   }
 ]

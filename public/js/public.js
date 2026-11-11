@@ -8,10 +8,20 @@ let allNews = [];
 let allProposals = [];
 let currentCitizenPhoto = null;
 let currentGpsData = null;
+let currentUser = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   checkAuthSession();
   loadNews();
+  loadHistory();
+
+  // Handle URL hash navigation
+  const hash = (window.location.hash || '').replace('#', '').toLowerCase();
+  if (hash === 'history' || hash === 'proposals' || hash === 'list') {
+    switchPage('history');
+  } else if (hash === 'proposal' || hash === 'form' || hash === 'new') {
+    switchPage('proposal');
+  }
 
   // Set anti-bot form timestamp
   const ft = document.getElementById('formTokenTime');
@@ -25,6 +35,7 @@ async function checkAuthSession() {
   if (!nav) return;
 
   if (!token) {
+    currentUser = null;
     nav.innerHTML = `
       <a href="/sala/manage" class="btn-header" title="เข้าสู่ระบบสำหรับเจ้าหน้าที่เทศบาล">
         <i class="fas fa-user-lock"></i> เข้าสู่ระบบเจ้าหน้าที่
@@ -39,6 +50,7 @@ async function checkAuthSession() {
     });
     const data = await res.json();
     if (data.success && data.user) {
+      currentUser = data.user;
       nav.innerHTML = `
         <a href="/sala/manage" class="btn-header btn-header-gold" title="เข้าสู่ระบบบริหารจัดการ">
           <i class="fas fa-tasks"></i> ระบบจัดการ (${escapeHtml(data.user.name || data.user.username)})
@@ -48,6 +60,7 @@ async function checkAuthSession() {
         </button>
       `;
     } else {
+      currentUser = null;
       localStorage.removeItem('sala_token');
       nav.innerHTML = `
         <a href="/sala/manage" class="btn-header" title="เข้าสู่ระบบสำหรับเจ้าหน้าที่เทศบาล">
@@ -56,6 +69,7 @@ async function checkAuthSession() {
       `;
     }
   } catch (e) {
+    currentUser = null;
     nav.innerHTML = `
       <a href="/sala/manage" class="btn-header" title="เข้าสู่ระบบสำหรับเจ้าหน้าที่เทศบาล">
         <i class="fas fa-user-lock"></i> เข้าสู่ระบบเจ้าหน้าที่
@@ -531,6 +545,8 @@ async function submitProposal(e) {
 // ─── PROPOSALS TRACKING & HISTORY ────────────────────────────
 async function loadHistory() {
   const container = document.getElementById('historyContainer');
+  if (!container) return;
+
   const isPublic = !currentUser;
 
   try {
@@ -543,14 +559,23 @@ async function loadHistory() {
       container.innerHTML = `<div style="text-align: center; padding: 25px; color: var(--slate-400);">ไม่พบรายการข้อเสนอ</div>`;
     }
   } catch (e) {
-    container.innerHTML = `<div style="text-align: center; padding: 25px; color: var(--danger);">ไม่สามารถโหลดข้อมูลข้อเสนอได้</div>`;
+    console.error('loadHistory error:', e);
+    container.innerHTML = `
+      <div style="text-align: center; padding: 25px; color: var(--danger);">
+        <div>ไม่สามารถโหลดข้อมูลข้อเสนอได้</div>
+        <button type="button" class="btn-sub-action" onclick="loadHistory()" style="margin-top: 10px;">ลองใหม่อีกครั้ง</button>
+      </div>`;
   }
 }
 
 function filterHistory() {
-  const search = (document.getElementById('searchHistory').value || '').toLowerCase().trim();
-  const comm = document.getElementById('filterHistoryCommunity').value;
   const container = document.getElementById('historyContainer');
+  if (!container) return;
+
+  const searchEl = document.getElementById('searchHistory');
+  const commEl = document.getElementById('filterHistoryCommunity');
+  const search = (searchEl && searchEl.value ? searchEl.value : '').toLowerCase().trim();
+  const comm = (commEl && commEl.value) ? commEl.value : 'all';
 
   let list = allProposals.filter(p => {
     const matchComm = (comm === 'all' || p.community === comm);

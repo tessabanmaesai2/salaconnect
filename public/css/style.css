@@ -655,8 +655,16 @@ textarea.v3-input {
   flex-wrap: wrap;
 }
 
+.table-responsive-wrapper {
+  overflow-x: auto;
+  width: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
 .manage-table {
   width: 100%;
+  min-width: 1250px;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: 0.85rem;
   text-align: left;
@@ -671,6 +679,29 @@ textarea.v3-input {
   border-bottom: 2px solid var(--slate-200);
   font-size: 0.82rem;
   white-space: nowrap;
+  position: relative;
+  user-select: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.manage-table th .col-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  cursor: col-resize;
+  user-select: none;
+  height: 100%;
+  z-index: 10;
+  background: transparent;
+  transition: background 0.15s ease;
+}
+
+.manage-table th .col-resizer:hover,
+.manage-table th .col-resizer.resizing {
+  background: var(--primary);
+  opacity: 0.85;
 }
 
 .manage-table td {
@@ -679,6 +710,7 @@ textarea.v3-input {
   color: var(--slate-700);
   vertical-align: top;
   word-break: break-word;
+  overflow: hidden;
 }
 
 .manage-table tr:hover td {

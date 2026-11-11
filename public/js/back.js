@@ -43,16 +43,6 @@ function showMasterLogin() {
   document.getElementById('masterLoginScreen').classList.remove('hidden');
   document.getElementById('masterDashboardScreen').classList.add('hidden');
   document.getElementById('btnMasterLogout').classList.add('hidden');
-
-  // Hard wipe all inputs to permanently prevent browser autofill
-  const f = document.getElementById('formMasterLogin');
-  if (f) f.reset();
-  const u = document.getElementById('masterKeyUsernameInput');
-  const p = document.getElementById('masterKeyPasswordInput');
-  if (u) u.value = '';
-  if (p) p.value = '';
-  setTimeout(() => { if (u) u.value = ''; if (p) p.value = ''; }, 50);
-  setTimeout(() => { if (u) u.value = ''; if (p) p.value = ''; }, 200);
 }
 
 function togglePasswordVisibility(inputId, eyeId) {

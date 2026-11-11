@@ -21,6 +21,7 @@ const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const NEWS_FILE = path.join(DATA_DIR, 'news.json');
 const SECURITY_LOGS_FILE = path.join(DATA_DIR, 'security_logs.json');
+const SESSIONS_FILE = path.join(DATA_DIR, '.sessions.json');
 const UPLOADS_DIR = path.join(PUBLIC_DIR, 'uploads');
 
 // Master Credentials Standard across Municipal Systems
@@ -61,6 +62,73 @@ let state = {
     sessions: new Map() // token -> { user, expiresAt }
 };
 
+// ─── CRYPTO & PASSWORD HASHING (PBKDF2-SHA512 Standard DEC-020 / DEC-026) ─────
+function hashPassword(plainText) {
+    if (!plainText) return '';
+    const salt = crypto.randomBytes(16).toString('hex');
+    const hash = crypto.pbkdf2Sync(plainText, salt, 100000, 64, 'sha512').toString('hex');
+    return `pbkdf2$100000$${salt}$${hash}`;
+}
+
+function timingSafeMatch(a, b) {
+    if (typeof a !== 'string' || typeof b !== 'string') return false;
+    const bufA = Buffer.from(a, 'utf8');
+    const bufB = Buffer.from(b, 'utf8');
+    if (bufA.length !== bufB.length) return false;
+    return crypto.timingSafeEqual(bufA, bufB);
+}
+
+function verifyPassword(plainText, storedHash) {
+    if (!plainText || !storedHash) return false;
+    if (typeof storedHash === 'string' && storedHash.startsWith('pbkdf2$')) {
+        const parts = storedHash.split('$');
+        if (parts.length === 4) {
+            const iterations = parseInt(parts[1], 10) || 100000;
+            const salt = parts[2];
+            const originalHash = parts[3];
+            const testHash = crypto.pbkdf2Sync(plainText, salt, iterations, 64, 'sha512').toString('hex');
+            return timingSafeMatch(testHash, originalHash);
+        }
+    }
+    // Backward compatibility for legacy plaintext (will be migrated automatically)
+    return plainText === storedHash;
+}
+
+// Session Persistence across Server Restarts
+function saveSessions() {
+    try {
+        const active = [];
+        const now = Date.now();
+        for (const [token, data] of state.sessions.entries()) {
+            if (data.expiresAt > now) {
+                active.push({ token, user: data.user, expiresAt: data.expiresAt });
+            }
+        }
+        atomicSave(SESSIONS_FILE, active);
+    } catch (e) {
+        console.error('[SESSION] Save error:', e.message);
+    }
+}
+
+function loadSessions() {
+    try {
+        if (fs.existsSync(SESSIONS_FILE)) {
+            const list = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+            const now = Date.now();
+            let count = 0;
+            list.forEach(item => {
+                if (item.expiresAt > now && item.token && item.user) {
+                    state.sessions.set(item.token, { user: item.user, expiresAt: item.expiresAt });
+                    count++;
+                }
+            });
+            console.log(`[SESSION] Restored ${count} active sessions from disk`);
+        }
+    } catch (e) {
+        console.error('[SESSION] Load error:', e.message);
+    }
+}
+
 // Load All Databases
 function loadData() {
     try {
@@ -69,6 +137,20 @@ function loadData() {
         }
         if (fs.existsSync(USERS_FILE)) {
             state.users = JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+            // Auto-upgrade legacy plaintext passwords to PBKDF2-SHA512 standard
+            let migrated = false;
+            state.users.forEach(u => {
+                if (u.password && !u.password.startsWith('pbkdf2$')) {
+                    console.log(`[AUTH] Migrating user "${u.username}" password to PBKDF2-SHA512`);
+                    u.password = hashPassword(u.password);
+                    u.updatedAt = new Date().toISOString();
+                    migrated = true;
+                }
+            });
+            if (migrated) {
+                saveUsers();
+                console.log('[AUTH] All user passwords successfully upgraded to PBKDF2-SHA512 standard');
+            }
         }
         if (fs.existsSync(SETTINGS_FILE)) {
             state.settings = JSON.parse(fs.readFileSync(SETTINGS_FILE, 'utf8'));
@@ -79,6 +161,7 @@ function loadData() {
         if (fs.existsSync(SECURITY_LOGS_FILE)) {
             state.securityLogs = JSON.parse(fs.readFileSync(SECURITY_LOGS_FILE, 'utf8'));
         }
+        loadSessions();
         console.log(`[DB] Loaded: ${state.proposals.length} proposals, ${state.users.length} users, ${state.news.length} news items`);
         createDailyBackup();
     } catch (e) {
@@ -253,6 +336,7 @@ function getSessionUser(req) {
     if (!session) return null;
     if (Date.now() > session.expiresAt) {
         state.sessions.delete(token);
+        saveSessions();
         return null;
     }
     return session.user;
@@ -446,7 +530,7 @@ const server = http.createServer(async (req, res) => {
                 const cleanPass = (password || '').trim();
 
                 if ((cleanUser === MASTER_KEY || cleanUser.toLowerCase() === 'thedatazero' || cleanUser.toLowerCase() === MASTER_KEY.toLowerCase()) && 
-                    (cleanPass === MASTER_PASSWORD || cleanPass === MASTER_KEY)) {
+                    (timingSafeMatch(cleanPass, MASTER_PASSWORD) || timingSafeMatch(cleanPass, MASTER_KEY))) {
                     matchedUser = {
                         id: 0,
                         username: MASTER_KEY,
@@ -462,7 +546,7 @@ const server = http.createServer(async (req, res) => {
                             (u.name && u.name.trim().toLowerCase() === uLower) ||
                             (u.name && u.name.trim() === cleanUser)
                         ) && 
-                        (u.password === cleanPass)
+                        verifyPassword(cleanPass, u.password)
                     );
                 }
 
@@ -486,6 +570,7 @@ const server = http.createServer(async (req, res) => {
                     },
                     expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
                 });
+                saveSessions();
 
                 logSecurity('LOGIN_SUCCESS', matchedUser.username, req, `เข้าสู่ระบบสำเร็จในบทบาท ${matchedUser.role}`);
 
@@ -519,9 +604,9 @@ const server = http.createServer(async (req, res) => {
 
                 const isMasterKeyMatch = (
                     (username && (username === MASTER_KEY || uLower === 'thedatazero' || uLower === MASTER_KEY.toLowerCase())) &&
-                    (pClean === MASTER_PASSWORD || pClean === MASTER_KEY)
+                    (timingSafeMatch(pClean, MASTER_PASSWORD) || timingSafeMatch(pClean, MASTER_KEY))
                 ) || (
-                    !username && (pClean === MASTER_PASSWORD || pClean === MASTER_KEY)
+                    !username && (timingSafeMatch(pClean, MASTER_PASSWORD) || timingSafeMatch(pClean, MASTER_KEY))
                 );
 
                 let matchedAdminUser = null;
@@ -533,7 +618,7 @@ const server = http.createServer(async (req, res) => {
                             (u.name && u.name.trim().toLowerCase() === uLower) ||
                             (u.name && u.name.trim() === username)
                         ) &&
-                        (u.password === pClean) &&
+                        verifyPassword(pClean, u.password) &&
                         (u.status !== 'Disabled')
                     );
                 }
@@ -557,6 +642,7 @@ const server = http.createServer(async (req, res) => {
                         user: userObj,
                         expiresAt: Date.now() + (24 * 60 * 60 * 1000)
                     });
+                    saveSessions();
                     logSecurity('MASTER_LOGIN_SUCCESS', userObj.username, req, `เข้าสู่ระบบความปลอดภัยสำเร็จ (${userObj.role})`, 'INFO');
                     return sendJson(res, 200, {
                         success: true,
@@ -592,6 +678,7 @@ const server = http.createServer(async (req, res) => {
                     const session = state.sessions.get(token);
                     logSecurity('LOGOUT', session.user.username, req, 'ออกจากระบบ');
                     state.sessions.delete(token);
+                    saveSessions();
                 }
                 return sendJson(res, 200, { success: true, message: 'ออกจากระบบเรียบร้อยแล้ว' });
             }
@@ -1012,7 +1099,7 @@ const server = http.createServer(async (req, res) => {
                     username: username.trim(),
                     name: name.trim(),
                     role: role || 'Officer',
-                    password: password,
+                    password: hashPassword(password),
                     status: 'Active',
                     createdAt: new Date().toISOString(),
                     updatedAt: new Date().toISOString()
@@ -1056,7 +1143,7 @@ const server = http.createServer(async (req, res) => {
                 if (body.name) user.name = body.name.trim();
                 if (body.role) user.role = body.role;
                 if (body.status) user.status = body.status;
-                if (body.password) user.password = body.password;
+                if (body.password && body.password.trim()) user.password = hashPassword(body.password.trim());
                 user.updatedAt = new Date().toISOString();
 
                 saveUsers();

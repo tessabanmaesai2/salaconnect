@@ -66,10 +66,10 @@ body.print-preview-mode {
 
 /* Paper Sheet Simulation */
 .print-page {
-  max-width: 1100px;
+  max-width: 1140px;
   margin: 0 auto 30px auto;
   background: #ffffff;
-  padding: 15mm 15mm;
+  padding: 12mm 12mm;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
   border-radius: 4px;
   font-family: 'Sarabun', 'Prompt', sans-serif;
@@ -78,8 +78,8 @@ body.print-preview-mode {
 }
 
 .print-page.portrait {
-  max-width: 800px;
-  padding: 20mm 20mm;
+  max-width: 820px;
+  padding: 15mm 15mm;
 }
 
 .official-header {

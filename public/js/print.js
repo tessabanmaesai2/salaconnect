@@ -21,9 +21,47 @@ document.addEventListener('DOMContentLoaded', async () => {
   const urlParams = new URLSearchParams(window.location.search);
   const targetId = urlParams.get('id');
   const targetTemplate = urlParams.get('template');
+  const targetIds = urlParams.get('ids');
+  const photosParam = urlParams.get('photos');
+  const autoAction = urlParams.get('auto');
 
   await loadSettings();
   await loadProposals();
+
+  // Apply filters from query params if passed
+  const yearParam = urlParams.get('year');
+  if (yearParam && document.getElementById('printYearFilter')) {
+    document.getElementById('printYearFilter').value = yearParam;
+  }
+  const commParam = urlParams.get('community');
+  if (commParam && document.getElementById('printCommunityFilter')) {
+    document.getElementById('printCommunityFilter').value = commParam;
+  }
+  const statusParam = urlParams.get('status');
+  if (statusParam && document.getElementById('printStatusFilter')) {
+    document.getElementById('printStatusFilter').value = statusParam;
+  }
+  const fromParam = urlParams.get('dateFrom');
+  if (fromParam && document.getElementById('printDateFrom')) {
+    document.getElementById('printDateFrom').value = fromParam;
+  }
+  const toParam = urlParams.get('dateTo');
+  if (toParam && document.getElementById('printDateTo')) {
+    document.getElementById('printDateTo').value = toParam;
+  }
+
+  // Handle specific item selection
+  if (targetIds) {
+    selectedItemIds.clear();
+    targetIds.split(',').forEach(s => {
+      const nid = parseInt(s.trim(), 10);
+      if (!isNaN(nid)) selectedItemIds.add(nid);
+    });
+  }
+
+  if (photosParam !== null && document.getElementById('chkIncludePhotos')) {
+    document.getElementById('chkIncludePhotos').checked = (photosParam === '1' || photosParam === 'true');
+  }
 
   if (targetTemplate === 'individual' && targetId) {
     document.getElementById('reportTemplateSelect').value = 'individual_form';
@@ -32,6 +70,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   renderSelectedTemplate();
+
+  if (autoAction === 'pdf') {
+    setTimeout(() => {
+      exportPDF();
+    }, 600);
+  } else if (autoAction === 'print') {
+    setTimeout(() => {
+      window.print();
+    }, 600);
+  }
 });
 
 function onCustomTitleChange(val) {
@@ -354,7 +402,9 @@ function renderSummaryTable(container, allFiltered) {
         <td style="text-align: center; white-space: nowrap; line-height: 1.3;">
           ${formatThaiDateTimeBE(p.timestamp || p.created_at || p.pdpa_timestamp)}
         </td>
-        <td>${escapeHtml(p.community || '-')}</td>
+        <td style="white-space: nowrap; font-weight: 600;">
+          ${escapeHtml(p.community || '-')}
+        </td>
         <td>
           <div style="font-weight: 600; line-height: 1.4;">${escapeHtml(p.problem || '-')}</div>
           <div style="font-size: 8.5pt; color: #475569; margin-top: 3px; line-height: 1.3;">แนวทางแก้ไข: ${escapeHtml(p.solution || '-')}</div>
@@ -364,9 +414,9 @@ function renderSummaryTable(container, allFiltered) {
           ${p.gps_lat && p.gps_lng ? `<div style="font-size: 8pt; color: #0284c7; margin-top: 2px;">พิกัด GPS: ${p.gps_lat}, ${p.gps_lng}</div>` : ''}
           ${p.photo ? `<div style="font-size: 8pt; color: #7c3aed; margin-top: 2px; font-weight: 600;">[มีรูปถ่ายสภาพปัญหา]</div>` : ''}
         </td>
-        <td>
+        <td style="white-space: nowrap;">
           <div style="font-weight: 600;">${escapeHtml(p.prefix || '')}${escapeHtml(p.name || '-')}</div>
-          ${p.phone ? `<div style="font-size: 8.5pt; color: #64748b; margin-top: 2px;">โทร: ${escapeHtml(p.phone)}</div>` : ''}
+          ${p.phone ? `<div style="font-size: 8pt; color: #64748b; margin-top: 2px;">โทร: ${escapeHtml(p.phone)}</div>` : ''}
         </td>
         <td style="text-align: center;">
           <div style="font-weight: 700; color: ${st === 'เสนอเรื่องเข้ามา' ? '#92400e' : (st === 'ไม่สามารถดำเนินการได้' ? '#991b1b' : '#1e293b')};">${st}</div>
@@ -391,16 +441,16 @@ function renderSummaryTable(container, allFiltered) {
       <table class="print-table">
         <thead>
           <tr>
-            <th class="screen-checkbox-col" style="width: 38px; text-align: center;">
+            <th class="screen-checkbox-col" style="width: 36px; text-align: center;">
               <input type="checkbox" ${isAllChecked ? 'checked' : ''} onchange="selectAllItems(this.checked)" title="เลือก/ปลดเลือกทั้งหมด" style="width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer;">
             </th>
-            <th style="width: 40px; text-align: center;">ที่</th>
-            <th style="width: 125px; text-align: center;">วัน เวลา (พ.ศ.) ที่ส่งเรื่อง</th>
-            <th style="width: 130px;">ชุมชน / หมู่บ้าน</th>
+            <th style="width: 35px; text-align: center;">ที่</th>
+            <th style="width: 110px; text-align: center; white-space: nowrap;">วัน เวลา (พ.ศ.) ที่ส่งเรื่อง</th>
+            <th style="width: 175px; text-align: left; white-space: nowrap;">ชุมชน / หมู่บ้าน</th>
             <th>สภาพปัญหาและแนวทางแก้ไขที่ต้องการ</th>
-            <th style="width: 160px;">สถานที่ดำเนินการ</th>
-            <th style="width: 140px;">ผู้เสนอข้อเสนอ</th>
-            <th style="width: 125px; text-align: center;">สถานะ</th>
+            <th style="width: 145px; text-align: left;">สถานที่ดำเนินการ</th>
+            <th style="width: 155px; text-align: left; white-space: nowrap;">ผู้เสนอข้อเสนอ</th>
+            <th style="width: 115px; text-align: center; white-space: nowrap;">สถานะ</th>
           </tr>
         </thead>
         <tbody>

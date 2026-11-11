@@ -12,6 +12,47 @@ let allProposals = [];
 let filteredProposals = [];
 let currentUser = null;
 let currentQuickFilter = 'all';
+const selectedManageIds = new Set();
+
+function formatThaiDateTimeBE(dateStr, withLineBreak = true) {
+  if (!dateStr) return '-';
+  const shortMonths = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+  // Match YYYY-MM-DD HH:mm:ss or ISO
+  const m = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})(?:[T\s](\d{2}):(\d{2}))?/);
+  if (m) {
+    const y = parseInt(m[1], 10);
+    const yearBE = y > 2400 ? y : y + 543;
+    const day = parseInt(m[3], 10);
+    const month = parseInt(m[2], 10);
+    const monthName = shortMonths[month - 1] || '';
+    const timeStr = m[4] && m[5] ? `${m[4]}:${m[5]} น.` : '';
+
+    if (timeStr) {
+      if (withLineBreak) {
+        return `${day} ${monthName} ${yearBE}<br><span style="font-size: 8pt; color: #64748b; font-weight: 500;">${timeStr}</span>`;
+      }
+      return `${day} ${monthName} ${yearBE} (${timeStr})`;
+    }
+    return `${day} ${monthName} ${yearBE}`;
+  }
+
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    const day = d.getDate();
+    const monthName = shortMonths[d.getMonth()] || '';
+    const yearBE = d.getFullYear() + 543;
+    const hours = String(d.getHours()).padStart(2, '0');
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    const timeStr = `${hours}:${mins} น.`;
+    if (withLineBreak) {
+      return `${day} ${monthName} ${yearBE}<br><span style="font-size: 8pt; color: #64748b; font-weight: 500;">${timeStr}</span>`;
+    }
+    return `${day} ${monthName} ${yearBE} (${timeStr})`;
+  }
+
+  return dateStr;
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   await checkAuthSession();
@@ -50,23 +91,6 @@ function showLoginGate() {
     staffNav.classList.add('hidden');
     staffNav.style.display = 'none';
   }
-
-  // Ensure login inputs are completely blank with no browser autofill
-  const f = document.getElementById('formStaffGateLogin');
-  if (f) f.reset();
-  const u = document.getElementById('gateUser');
-  const p = document.getElementById('gatePass');
-  if (u) u.value = '';
-  if (p) p.value = '';
-
-  setTimeout(() => {
-    if (u) u.value = '';
-    if (p) p.value = '';
-  }, 50);
-  setTimeout(() => {
-    if (u) u.value = '';
-    if (p) p.value = '';
-  }, 200);
 }
 
 function showDashboard() {
@@ -213,6 +237,8 @@ async function loadProposals() {
     const data = await res.json();
     if (data.success && Array.isArray(data.data)) {
       allProposals = data.data;
+      selectedManageIds.clear();
+      allProposals.forEach(p => selectedManageIds.add(p.id));
 
       // Extract unique Buddhist years dynamically
       const yearSet = new Set();
@@ -375,7 +401,9 @@ function filterTable() {
 function renderTable(list) {
   const tbody = document.getElementById('manageTableBody');
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--slate-400);">ไม่พบรายการข้อเสนอที่ตรงกับเงื่อนไขการค้นหา</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--slate-400);">ไม่พบรายการข้อเสนอที่ตรงกับเงื่อนไขการค้นหา</td></tr>`;
+    updateManageSelectionSummary();
+    updateHeaderSelectAllState();
     return;
   }
 
@@ -385,15 +413,18 @@ function renderTable(list) {
     if (normStatus === 'บรรจุในแผนชุมชน') normStatus = 'บรรจุในแผน';
 
     const reasonText = p.reject_reason || p.notes || '';
+    const isChecked = selectedManageIds.has(p.id);
 
     return `
     <tr>
-      <td>
-        <strong style="color: var(--primary); font-family: var(--font-heading);">${escapeHtml(p.code || 'PRJ')}</strong>
-        <div style="font-size: 0.75rem; color: var(--slate-400); margin-top: 2px;">
-          ${p.timestamp ? p.timestamp.slice(0, 10) : ''}
+      <td style="text-align: center; vertical-align: middle;">
+        <input type="checkbox" class="manage-row-chk" value="${p.id}" ${isChecked ? 'checked' : ''} onchange="toggleManageRowCheck(${p.id}, this.checked)" style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);">
+      </td>
+      <td style="text-align: center; vertical-align: middle; line-height: 1.3;">
+        <div style="font-weight: 600; color: var(--slate-800); font-size: 0.85rem;">
+          ${formatThaiDateTimeBE(p.timestamp || p.created_at)}
         </div>
-        <div style="margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap;">
+        <div style="margin-top: 5px; display: flex; gap: 4px; justify-content: center; flex-wrap: wrap;">
           ${p.photo ? `
             <a href="${p.photo}" target="_blank" style="display: inline-flex; align-items: center; gap: 2px; font-size: 0.72rem; color: var(--primary); background: #faf5ff; border: 1px solid var(--primary-light); padding: 1px 5px; border-radius: 3px; text-decoration: none;" title="คลิกเปิดดูรูปถ่าย">
               <i class="fas fa-camera"></i> รูป
@@ -406,8 +437,8 @@ function renderTable(list) {
           ` : ''}
         </div>
       </td>
-      <td>
-        <strong>${escapeHtml(p.community || '-')}</strong>
+      <td style="white-space: nowrap; font-weight: 600; vertical-align: middle;">
+        ${escapeHtml(p.community || '-')}
       </td>
       <td>
         <div style="font-weight: 500; line-height: 1.4;">${escapeHtml(p.problem || '-')}</div>
@@ -418,13 +449,13 @@ function renderTable(list) {
       <td>
         <div style="font-size: 0.8rem; color: var(--slate-600);">${escapeHtml(p.location || '-')}</div>
       </td>
-      <td>
-        <div style="font-weight: 600;">${escapeHtml(p.prefix || '')}${escapeHtml(p.name || '-')}</div>
-        <div style="font-size: 0.78rem; color: var(--slate-500);">
+      <td style="vertical-align: middle;">
+        <div style="font-weight: 600; white-space: nowrap;">${escapeHtml(p.prefix || '')}${escapeHtml(p.name || '-')}</div>
+        <div style="font-size: 0.78rem; color: var(--slate-500); margin-top: 2px; white-space: nowrap;">
           ${p.age ? `อายุ ${p.age} ปี` : ''} ${p.phone ? `• โทร ${escapeHtml(p.phone)}` : ''}
         </div>
       </td>
-      <td style="text-align: center;">
+      <td style="text-align: center; vertical-align: middle;">
         <select class="select-status-inline" onchange="changeStatusInline(${p.id}, this.value)">
           <option value="เสนอเรื่องเข้ามา" ${normStatus === 'เสนอเรื่องเข้ามา' ? 'selected' : ''}>เสนอเรื่องเข้ามา</option>
           <option value="อยู่ระหว่างพิจารณา" ${normStatus === 'อยู่ระหว่างพิจารณา' ? 'selected' : ''}>อยู่ระหว่างพิจารณา</option>
@@ -438,7 +469,7 @@ function renderTable(list) {
           </div>
         ` : ''}
       </td>
-      <td style="text-align: center;">
+      <td style="text-align: center; vertical-align: middle;">
         <div style="display: flex; gap: 4px; justify-content: center;">
           <button type="button" class="btn-action" title="แก้ไขข้อเสนอ" onclick="openEditModal(${p.id})">
             <i class="fas fa-edit" style="color: var(--primary);"></i>
@@ -454,6 +485,113 @@ function renderTable(list) {
     </tr>
   `;
   }).join('');
+
+  updateManageSelectionSummary();
+  updateHeaderSelectAllState();
+  initTableResizable();
+}
+
+// ─── ITEM-BY-ITEM SELECTION LOGIC ─────────────────────────────
+function toggleManageRowCheck(id, isChecked) {
+  if (isChecked) {
+    selectedManageIds.add(id);
+  } else {
+    selectedManageIds.delete(id);
+  }
+  updateManageSelectionSummary();
+  updateHeaderSelectAllState();
+}
+
+function toggleSelectAllProposals(selectAll) {
+  if (selectAll) {
+    filteredProposals.forEach(p => selectedManageIds.add(p.id));
+  } else {
+    filteredProposals.forEach(p => selectedManageIds.delete(p.id));
+  }
+  const checkboxes = document.querySelectorAll('.manage-row-chk');
+  checkboxes.forEach(cb => {
+    const pid = parseInt(cb.value, 10);
+    cb.checked = selectedManageIds.has(pid);
+  });
+  updateManageSelectionSummary();
+  updateHeaderSelectAllState();
+}
+
+function updateHeaderSelectAllState() {
+  const chk = document.getElementById('thSelectAll');
+  if (!chk) return;
+  if (filteredProposals.length === 0) {
+    chk.checked = false;
+    chk.indeterminate = false;
+    return;
+  }
+  const selectedCount = filteredProposals.filter(p => selectedManageIds.has(p.id)).length;
+  if (selectedCount === filteredProposals.length) {
+    chk.checked = true;
+    chk.indeterminate = false;
+  } else if (selectedCount > 0) {
+    chk.checked = false;
+    chk.indeterminate = true;
+  } else {
+    chk.checked = false;
+    chk.indeterminate = false;
+  }
+}
+
+function updateManageSelectionSummary() {
+  const selectedCount = filteredProposals.filter(p => selectedManageIds.has(p.id)).length;
+  const summaryEl = document.getElementById('manageSelectionSummary');
+  if (summaryEl) {
+    summaryEl.innerHTML = `เลือกแล้ว <b style="color: var(--primary);">${selectedCount}</b> / ${filteredProposals.length} รายการ`;
+  }
+}
+
+// ─── DRAG-TO-RESIZE COLUMN LOGIC ──────────────────────────────
+function initTableResizable() {
+  const table = document.querySelector('.manage-table');
+  if (!table) return;
+  const cols = table.querySelectorAll('thead th');
+  cols.forEach((th, index) => {
+    if (th.querySelector('.col-resizer')) return;
+    if (index === 0) return; // Keep checkbox column fixed width
+
+    const resizer = document.createElement('div');
+    resizer.className = 'col-resizer';
+    resizer.title = 'คลิกค้างแล้วลากเพื่อปรับขนาดความกว้างคอลัมน์ (ยืด/หด)';
+    th.appendChild(resizer);
+
+    let startX = 0;
+    let startWidth = 0;
+
+    resizer.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      startX = e.pageX;
+      startWidth = th.offsetWidth;
+      resizer.classList.add('resizing');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+
+      const onMouseMove = (moveEvent) => {
+        const diff = moveEvent.pageX - startX;
+        const newWidth = Math.max(70, startWidth + diff);
+        th.style.width = newWidth + 'px';
+        th.style.minWidth = newWidth + 'px';
+      };
+
+      const onMouseUp = () => {
+        resizer.classList.remove('resizing');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+      };
+
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    });
+  });
+}
 }
 
 // ─── INLINE STATUS CHANGE ────────────────────────────────────
@@ -503,16 +641,29 @@ async function changeStatusInline(id, newStatus) {
   }
 }
 
-// ─── ADD / EDIT MODAL & ATTACHMENTS ─────────────────────────
+// ─── ADD / EDIT MODAL & ATTACHMENTS (STAFF PARITY WITH CITIZEN STANDARD) ───
 let staffPhotoBase64 = null;
 
-function triggerStaffCamera() {
-  const el = document.getElementById('staffCameraInput');
+function openStaffPhotoChoiceModal() {
+  const modal = document.getElementById('staffPhotoChoiceModal');
+  if (modal) modal.classList.add('active');
+}
+
+function closeStaffPhotoChoiceModal(e) {
+  if (e && e.target && e.target !== e.currentTarget) return;
+  const modal = document.getElementById('staffPhotoChoiceModal');
+  if (modal) modal.classList.remove('active');
+}
+
+function triggerStaffCameraInput() {
+  closeStaffPhotoChoiceModal();
+  const el = document.getElementById('staffCameraFile');
   if (el) el.click();
 }
 
-function triggerStaffGallery() {
-  const el = document.getElementById('staffGalleryInput');
+function triggerStaffGalleryInput() {
+  closeStaffPhotoChoiceModal();
+  const el = document.getElementById('staffGalleryFile');
   if (el) el.click();
 }
 
@@ -524,6 +675,8 @@ function handleStaffPhotoSelect(event) {
     showToast('กรุณาเลือกไฟล์รูปภาพเท่านั้น (JPG, PNG, WebP)', 'error');
     return;
   }
+
+  showToast('กำลังเตรียมและปรับขนาดรูปภาพ...', 'info');
 
   const reader = new FileReader();
   reader.onload = function(e) {
@@ -561,33 +714,31 @@ function handleStaffPhotoSelect(event) {
 }
 
 function renderStaffPhotoPreview(src, sizeInfo) {
-  const area = document.getElementById('editPhotoPreviewArea');
-  if (!area) return;
-  if (!src) {
-    area.innerHTML = '<span style="font-size: 0.78rem; color: var(--slate-400);">ยังไม่มีรูปภาพ</span>';
-    return;
-  }
+  const triggerBtn = document.getElementById('btnStaffPhotoTrigger');
+  const previewWrap = document.getElementById('staffPhotoPreviewWrap');
+  const previewImg = document.getElementById('staffPhotoPreviewImg');
+  const sizeBadge = document.getElementById('staffPhotoSizeBadge');
 
-  area.innerHTML = `
-    <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
-      <a href="${src}" target="_blank" title="คลิกดูภาพขยาย">
-        <img src="${src}" alt="ภาพสภาพปัญหา" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid var(--slate-300);">
-      </a>
-      <div style="flex: 1; min-width: 0;">
-        <div style="font-size: 0.8rem; font-weight: 600; color: var(--slate-800);">มีรูปภาพแนบแล้ว</div>
-        <div style="font-size: 0.72rem; color: var(--success); font-weight: 500;">${sizeInfo || 'พร้อมบันทึก'}</div>
-      </div>
-      <button type="button" class="btn-sub-action danger" style="padding: 4px 8px; font-size: 0.75rem;" onclick="removeStaffPhoto()" title="ลบรูปถ่าย">
-        <i class="fas fa-trash-alt"></i> ลบรูป
-      </button>
-    </div>
-  `;
+  if (src) {
+    if (previewImg) previewImg.src = src;
+    if (sizeBadge) sizeBadge.textContent = sizeInfo || 'รูปถ่ายสภาพปัญหา';
+    if (previewWrap) previewWrap.style.display = 'block';
+    if (triggerBtn) triggerBtn.style.display = 'none';
+  } else {
+    if (previewImg) previewImg.src = '';
+    if (previewWrap) previewWrap.style.display = 'none';
+    if (triggerBtn) triggerBtn.style.display = 'flex';
+  }
+}
+
+function changeStaffPhoto() {
+  openStaffPhotoChoiceModal();
 }
 
 function removeStaffPhoto() {
   staffPhotoBase64 = ''; // explicit empty to indicate removal
-  const cIn = document.getElementById('staffCameraInput');
-  const gIn = document.getElementById('staffGalleryInput');
+  const cIn = document.getElementById('staffCameraFile');
+  const gIn = document.getElementById('staffGalleryFile');
   if (cIn) cIn.value = '';
   if (gIn) gIn.value = '';
   renderStaffPhotoPreview('', '');
@@ -620,22 +771,19 @@ function getStaffGpsLocation() {
 function updateStaffGpsPreview() {
   const lat = document.getElementById('editGpsLat')?.value.trim();
   const lng = document.getElementById('editGpsLng')?.value.trim();
-  const area = document.getElementById('editGpsPreviewArea');
-  if (!area) return;
+  const triggerBtn = document.getElementById('btnStaffGetGps');
+  const resultWrap = document.getElementById('staffGpsLocationResult');
+  const coordsText = document.getElementById('staffGpsCoordsText');
+  const mapLink = document.getElementById('staffGpsMapLink');
 
   if (lat && lng) {
-    area.innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-        <span style="font-size: 0.75rem; color: var(--slate-700);">
-          <i class="fas fa-check-circle text-success me-1"></i> พิกัด: <code>${lat}, ${lng}</code>
-        </span>
-        <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" class="btn-sub-action" style="padding: 2px 8px; font-size: 0.72rem; text-decoration: none;">
-          <i class="fas fa-external-link-alt"></i> แผนที่
-        </a>
-      </div>
-    `;
+    if (coordsText) coordsText.innerHTML = `<i class="fas fa-check-circle text-success me-1"></i> พิกัด: <code>${lat}, ${lng}</code>`;
+    if (mapLink) mapLink.href = `https://www.google.com/maps?q=${lat},${lng}`;
+    if (resultWrap) resultWrap.style.display = 'block';
+    if (triggerBtn) triggerBtn.style.display = 'none';
   } else {
-    area.innerHTML = '<span style="color: var(--slate-400);">ยังไม่ได้ระบุพิกัด</span>';
+    if (resultWrap) resultWrap.style.display = 'none';
+    if (triggerBtn) triggerBtn.style.display = 'flex';
   }
 }
 
@@ -793,27 +941,33 @@ async function deleteProposal(id) {
   }
 }
 
-// ─── EXPORT TO EXCEL (Strict: NO Budget Column) ──────────────
+// ─── EXPORT TO EXCEL (Strict: NO Budget Column & NO Code) ─────
 function exportToExcel() {
-  if (filteredProposals.length === 0) {
-    return showToast('ไม่มีข้อมูลสำหรับส่งออก', 'warning');
+  const targetProposals = filteredProposals.filter(p => selectedManageIds.has(p.id));
+  if (targetProposals.length === 0) {
+    return showToast('กรุณาเลือกรายการที่ต้องการส่งออก (ทำเครื่องหมายถูกในช่องสี่เหลี่ยม)', 'warning');
   }
 
-  const exportData = filteredProposals.map((p, idx) => ({
-    'ลำดับ': idx + 1,
-    'รหัสข้อเสนอ': p.code || '',
-    'วันที่บันทึก': p.timestamp || '',
-    'ชุมชน / หมู่บ้าน': p.community || '',
-    'คำนำหน้า': p.prefix || '',
-    'ชื่อ-นามสกุล': p.name || '',
-    'อายุ (ปี)': p.age || '',
-    'เบอร์โทรศัพท์': p.phone || '',
-    'สภาพปัญหาและสาเหตุ': p.problem || '',
-    'แนวทางแก้ไขหรือโครงการที่ต้องการ': p.solution || '',
-    'สถานที่ดำเนินการ': p.location || '',
-    'สถานะโครงการ': (p.status === 'รอดำเนินการ') ? 'เข้าระบบแล้ว' : ((p.status === 'บรรจุในแผนชุมชน') ? 'บรรจุในแผน' : (p.status || 'เข้าระบบแล้ว')),
-    'เหตุผลกรณีไม่สามารถดำเนินการได้': p.reject_reason || p.notes || ''
-  }));
+  const exportData = targetProposals.map((p, idx) => {
+    let normStatus = p.status || 'เสนอเรื่องเข้ามา';
+    if (normStatus === 'รอดำเนินการ' || normStatus === 'เข้าระบบแล้ว') normStatus = 'เสนอเรื่องเข้ามา';
+    if (normStatus === 'บรรจุในแผนชุมชน') normStatus = 'บรรจุในแผน';
+
+    return {
+      'ลำดับ': idx + 1,
+      'วัน เวลา (พ.ศ.) ที่ส่งเรื่อง': formatThaiDateTimeBE(p.timestamp || p.created_at, false),
+      'ชุมชน / หมู่บ้าน': p.community || '',
+      'คำนำหน้า': p.prefix || '',
+      'ชื่อ-นามสกุล': p.name || '',
+      'อายุ (ปี)': p.age || '',
+      'เบอร์โทรศัพท์': p.phone || '',
+      'สภาพปัญหาและสาเหตุ': p.problem || '',
+      'แนวทางแก้ไขหรือโครงการที่ต้องการ': p.solution || '',
+      'สถานที่ดำเนินการ': p.location || '',
+      'สถานะ': normStatus,
+      'เหตุผลกรณีไม่สามารถดำเนินการได้': p.reject_reason || p.notes || ''
+    };
+  });
 
   const worksheet = XLSX.utils.json_to_sheet(exportData);
   const workbook = XLSX.utils.book_new();
@@ -821,6 +975,42 @@ function exportToExcel() {
 
   const today = new Date().toISOString().slice(0, 10);
   XLSX.writeFile(workbook, `SALA_CONNECT_Proposals_${today}.xlsx`);
+  showToast(`ส่งออก Excel สำเร็จ (${targetProposals.length} รายการ)`, 'success');
+}
+
+// ─── EXPORT TO PDF (Replicating Official Print Template) ──────
+function exportToPDF() {
+  const targetProposals = filteredProposals.filter(p => selectedManageIds.has(p.id));
+  if (targetProposals.length === 0) {
+    return showToast('กรุณาเลือกรายการที่ต้องการส่งออกเป็น PDF (ทำเครื่องหมายถูกในช่องสี่เหลี่ยม)', 'warning');
+  }
+
+  const ids = targetProposals.map(p => p.id).join(',');
+  const includePhotos = document.getElementById('manageIncludePhotos')?.checked ? '1' : '0';
+
+  const params = new URLSearchParams();
+  params.set('ids', ids);
+  params.set('photos', includePhotos);
+  params.set('auto', 'pdf');
+
+  // Preserve active filters
+  const yearFilter = document.getElementById('manageYearFilter')?.value;
+  if (yearFilter && yearFilter !== 'all') params.set('year', yearFilter);
+
+  const commFilter = document.getElementById('manageCommunityFilter')?.value;
+  if (commFilter && commFilter !== 'all') params.set('community', commFilter);
+
+  const statusFilter = document.getElementById('manageStatusFilter')?.value;
+  if (statusFilter && statusFilter !== 'all') params.set('status', statusFilter);
+
+  const dateFrom = document.getElementById('manageDateFrom')?.value;
+  if (dateFrom) params.set('dateFrom', dateFrom);
+
+  const dateTo = document.getElementById('manageDateTo')?.value;
+  if (dateTo) params.set('dateTo', dateTo);
+
+  showToast(`กำลังเตรียมรายงาน PDF (${targetProposals.length} รายการ)...`, 'info');
+  window.open(`/sala/print?${params.toString()}`, '_blank');
 }
 
 function escapeHtml(str) {

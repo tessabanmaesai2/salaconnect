@@ -35,6 +35,9 @@
           <button type="button" class="btn-header" onclick="exportToExcel()">
             <i class="fas fa-file-excel"></i> ส่งออก Excel
           </button>
+          <button type="button" class="btn-header" onclick="exportToPDF()">
+            <i class="fas fa-file-pdf"></i> ส่งออก PDF
+          </button>
           <button type="button" class="btn-header btn-header-gold" onclick="openAddModal()">
             <i class="fas fa-plus-circle"></i> + เพิ่มข้อเสนอใหม่
           </button>
@@ -62,12 +65,12 @@
       <form id="formStaffGateLogin" onsubmit="handleGateLogin(event)" style="text-align: left;" autocomplete="off">
         <div class="form-group">
           <label class="form-label">ชื่อผู้ใช้งาน (Username) หรือ ชื่อเจ้าหน้าที่ <span class="req">*</span></label>
-          <input type="text" id="gateUser" name="staff_login_user" class="v3-input" required placeholder="ระบุชื่อผู้ใช้งานเจ้าหน้าที่" autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" value="">
+          <input type="text" id="gateUser" name="staff_login_user" class="v3-input" required placeholder="ระบุชื่อผู้ใช้งานเจ้าหน้าที่ (เช่น admin)" autocomplete="username">
         </div>
         <div class="form-group">
           <label class="form-label">รหัสผ่าน (Password) <span class="req">*</span></label>
           <div style="position: relative;">
-            <input type="password" id="gatePass" name="staff_login_pass" class="v3-input" required placeholder="รหัสผ่าน" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');" style="padding-right: 42px;" value="">
+            <input type="password" id="gatePass" name="staff_login_pass" class="v3-input" required placeholder="รหัสผ่าน" autocomplete="current-password" style="padding-right: 42px;">
             <button type="button" onclick="togglePasswordVisibility('gatePass', 'gatePassEye')" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--slate-400); cursor: pointer; padding: 4px;" title="แสดง/ซ่อนรหัสผ่าน">
               <i class="fas fa-eye" id="gatePassEye"></i>
             </button>
@@ -187,24 +190,57 @@
         </div>
       </div>
 
-      <!-- Responsive Fluid Table without horizontal scroll on desktop -->
-      <table class="manage-table">
-        <thead>
-          <tr>
-            <th style="width: 110px;">รหัส / วันที่</th>
-            <th style="width: 120px;">ชุมชน / หมู่บ้าน</th>
-            <th style="min-width: 220px;">ปัญหาชุมชนและสาเหตุ</th>
-            <th style="min-width: 220px;">แนวทางแก้ไขหรือโครงการที่ต้องการ</th>
-            <th style="width: 140px;">สถานที่ดำเนินการ</th>
-            <th style="width: 140px;">ผู้เสนอ (อายุ / เบอร์โทร)</th>
-            <th style="width: 145px; text-align: center;">สถานะ (คลิกเปลี่ยนได้)</th>
-            <th style="width: 110px; text-align: center;">จัดการ</th>
-          </tr>
-        </thead>
-        <tbody id="manageTableBody">
-          <tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--slate-400);">กำลังโหลดข้อมูล...</td></tr>
-        </tbody>
-      </table>
+      <!-- 📑 Selection & Quick Export Toolbar -->
+      <div class="manage-selection-bar" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 16px; background: #f8fafc; border-top: 1px solid var(--slate-200); border-bottom: 1px solid var(--slate-200);">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+          <button type="button" class="pill-btn" onclick="toggleSelectAllProposals(true)" style="font-size: 0.82rem; padding: 5px 12px; background: #ffffff; border: 1px solid var(--slate-300); font-weight: 600;">
+            <i class="fas fa-check-square" style="color: var(--primary);"></i> เลือกทั้งหมด
+          </button>
+          <button type="button" class="pill-btn" onclick="toggleSelectAllProposals(false)" style="font-size: 0.82rem; padding: 5px 12px; background: #ffffff; border: 1px solid var(--slate-300); font-weight: 600;">
+            <i class="fas fa-square" style="color: var(--slate-400);"></i> ล้างการเลือก
+          </button>
+          <span id="manageSelectionSummary" style="font-size: 0.85rem; font-weight: 700; color: var(--primary); margin-left: 6px;">
+            เลือกแล้ว 0 รายการ
+          </span>
+          <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; color: var(--slate-700); margin-left: 12px; font-weight: 500;">
+            <input type="checkbox" id="manageIncludePhotos" checked style="width: 16px; height: 16px; accent-color: var(--primary); cursor: pointer;">
+            <span>รวมภาพถ่ายและรายละเอียดใน PDF (พิมพ์แยกหน้า)</span>
+          </label>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 0.82rem; color: var(--slate-600); font-weight: 600;">ส่งออกรายการที่เลือก:</span>
+          <button type="button" class="pill-btn" onclick="exportToExcel()" style="padding: 6px 14px; font-size: 0.85rem; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-weight: 700;">
+            <i class="fas fa-file-excel"></i> ส่งออก Excel
+          </button>
+          <button type="button" class="pill-btn" onclick="exportToPDF()" style="padding: 6px 14px; font-size: 0.85rem; background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; font-weight: 700;">
+            <i class="fas fa-file-pdf"></i> ส่งออก PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- Responsive Scrollable Data Grid with Drag-to-Resize Columns -->
+      <div class="table-responsive-wrapper">
+        <table class="manage-table">
+          <thead>
+            <tr>
+              <th style="width: 46px; min-width: 46px; text-align: center;">
+                <input type="checkbox" id="thSelectAll" onchange="toggleSelectAllProposals(this.checked)" title="เลือกทั้งหมด" style="cursor: pointer; width: 16px; height: 16px; accent-color: var(--primary);">
+              </th>
+              <th style="width: 150px; min-width: 130px; text-align: center;">วัน เวลา (พ.ศ.) ที่ส่งเรื่อง</th>
+              <th style="width: 175px; min-width: 150px; text-align: left;">ชุมชน / หมู่บ้าน</th>
+              <th style="width: 250px; min-width: 180px; text-align: left;">สภาพปัญหาและสาเหตุ</th>
+              <th style="width: 250px; min-width: 180px; text-align: left;">แนวทางแก้ไขหรือโครงการที่ต้องการ</th>
+              <th style="width: 160px; min-width: 130px; text-align: left;">สถานที่ดำเนินการ</th>
+              <th style="width: 165px; min-width: 140px; text-align: left;">ผู้เสนอ (อายุ / เบอร์โทร)</th>
+              <th style="width: 165px; min-width: 145px; text-align: center;">สถานะ (คลิกเปลี่ยนได้)</th>
+              <th style="width: 110px; min-width: 95px; text-align: center;">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="manageTableBody">
+            <tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--slate-400);">กำลังโหลดข้อมูล...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
   </main>
@@ -276,11 +312,103 @@
 
         <div class="form-group">
           <label class="form-label">สถานที่ดำเนินการ <span class="req">*</span></label>
-          <textarea id="editLocation" class="v3-input" rows="2" required></textarea>
+          <textarea id="editLocation" class="v3-input" rows="2" required placeholder="ระบุพิกัด ซอย ถนน หรือจุดอ้างอิงของปัญหา..."></textarea>
         </div>
 
-        <div class="form-group" style="background: #f5f3ff; padding: 12px; border-radius: var(--radius-md); border: 1.5px solid var(--primary-light);">
-          <label class="form-label" style="color: var(--primary-dark); font-weight: 700;">สถานะโครงการ</label>
+        <!-- 📷 & 📍 Staff Attachments (Identical Gold Standard UX/UI as Citizen Mode) -->
+        <div class="form-group" id="groupAttachedAssets" style="background: #faf5ff; padding: 16px; border-radius: var(--radius-md); border: 1.5px dashed var(--primary-light);">
+          <div style="font-weight: 700; color: var(--primary-dark); font-size: 0.95rem; margin-bottom: 4px;">
+            <i class="fas fa-paperclip"></i> แนบรูปภาพและพิกัด GPS (ไม่บังคับ — เลือกใส่หรือไม่ก็ได้)
+          </div>
+          <div style="font-size: 0.8rem; color: var(--slate-500); margin-bottom: 14px; line-height: 1.4;">
+            หากมีภาพถ่ายสภาพปัญหา หรือต้องการระบุพิกัดแผนที่เพื่อความแม่นยำในการลงพื้นที่ สามารถแนบได้ตามความสะดวก
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
+            <!-- 1. Photo upload / Camera capture (Identical to Citizen Form) -->
+            <div style="background: #ffffff; padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--slate-200); display: flex; flex-direction: column;">
+              <label class="form-label" style="font-size: 0.84rem; margin-bottom: 8px;">
+                <i class="fas fa-camera"></i> รูปถ่ายสภาพปัญหา (แนบได้ 1 รูป)
+              </label>
+
+              <!-- Main Touch Trigger Button (Spacious 56px touch target) -->
+              <button type="button" class="btn-touch-action" id="btnStaffPhotoTrigger" onclick="openStaffPhotoChoiceModal()" title="แตะเพื่อเลือกวิธีแนบรูปถ่าย">
+                <div class="touch-action-icon photo">
+                  <i class="fas fa-camera"></i>
+                </div>
+                <div class="touch-action-text">
+                  <span class="touch-action-title">แนบรูปถ่ายสภาพปัญหา</span>
+                  <span class="touch-action-sub">แตะเพื่อเลือก: ถ่ายจากกล้อง หรือ เลือกรูปจากเครื่อง</span>
+                </div>
+              </button>
+              <input type="file" id="staffCameraFile" accept="image/*" capture="environment" style="display:none;" onchange="handleStaffPhotoSelect(event)">
+              <input type="file" id="staffGalleryFile" accept="image/*" style="display:none;" onchange="handleStaffPhotoSelect(event)">
+              <input type="hidden" id="editPhotoData" value="">
+
+              <!-- Photo Preview & Actions (Shown after selection) -->
+              <div id="staffPhotoPreviewWrap" style="display: none; margin-top: 10px;">
+                <div class="photo-preview-card">
+                  <img id="staffPhotoPreviewImg" src="" alt="ภาพตัวอย่าง" class="photo-preview-thumb">
+                  <div id="staffPhotoSizeBadge" style="font-size: 0.75rem; color: var(--success); font-weight: 600;"></div>
+                  <div class="attach-action-bar">
+                    <button type="button" class="btn-sub-action" onclick="changeStaffPhoto()">
+                      <i class="fas fa-sync-alt"></i> เปลี่ยนรูป
+                    </button>
+                    <button type="button" class="btn-sub-action danger" onclick="removeStaffPhoto()">
+                      <i class="fas fa-trash-alt"></i> ลบรูป
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. GPS Location Pin (Identical to Citizen Form) -->
+            <div style="background: #ffffff; padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--slate-200); display: flex; flex-direction: column;">
+              <label class="form-label" style="font-size: 0.84rem; margin-bottom: 8px;">
+                <i class="fas fa-map-marker-alt"></i> พิกัดตำแหน่ง GPS
+              </label>
+
+              <!-- Main GPS Button (Spacious 56px touch target) -->
+              <button type="button" class="btn-touch-action" id="btnStaffGetGps" onclick="getStaffGpsLocation()" title="แตะเพื่อดึงพิกัดตำแหน่งปัจจุบัน">
+                <div class="touch-action-icon gps">
+                  <i class="fas fa-map-marker-alt"></i>
+                </div>
+                <div class="touch-action-text">
+                  <span class="touch-action-title">ปักหมุดตำแหน่งปัจจุบัน (GPS)</span>
+                  <span class="touch-action-sub">ดึงพิกัดจากมือถือเพื่อให้ลงพื้นที่ได้แม่นยำ</span>
+                </div>
+              </button>
+
+              <!-- GPS Result Card (Shown after location captured) -->
+              <div id="staffGpsLocationResult" style="display: none; margin-top: 10px;">
+                <div class="gps-badge">
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <span id="staffGpsCoordsText" style="font-size: 0.82rem; font-weight: 700; color: #065f46;"></span>
+                    <a id="staffGpsMapLink" href="#" target="_blank" style="font-size: 0.78rem; color: #0284c7; text-decoration: underline; font-weight: 600;" title="เปิดดูบน Google Maps">
+                      <i class="fas fa-external-link-alt"></i> ดูแผนที่
+                    </a>
+                  </div>
+                  <div class="attach-action-bar">
+                    <button type="button" class="btn-sub-action" onclick="getStaffGpsLocation()">
+                      <i class="fas fa-crosshairs"></i> ดึงพิกัดใหม่
+                    </button>
+                    <button type="button" class="btn-sub-action danger" onclick="removeStaffGpsLocation()">
+                      <i class="fas fa-trash-alt"></i> ลบพิกัด
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <input type="hidden" id="editGpsLat" value="">
+              <input type="hidden" id="editGpsLng" value="">
+            </div>
+          </div>
+        </div>
+
+        <!-- 🏷️ Status Selection & Rejection Reason (Staff Control) -->
+        <div class="form-group" style="background: #f5f3ff; padding: 14px; border-radius: var(--radius-md); border: 1.5px solid var(--primary-light); margin-top: 14px;">
+          <label class="form-label" style="color: var(--primary-dark); font-weight: 700; font-size: 0.9rem;">
+            <i class="fas fa-tasks"></i> สถานะโครงการ
+          </label>
           <select id="editStatus" class="v3-input" style="font-weight: 600; border-color: var(--primary);" onchange="handleModalStatusChange(this.value)">
             <option value="เสนอเรื่องเข้ามา">เสนอเรื่องเข้ามา (เรื่องใหม่จากประชาชน)</option>
             <option value="อยู่ระหว่างพิจารณา">อยู่ระหว่างพิจารณา</option>
@@ -290,70 +418,11 @@
           </select>
         </div>
 
-        <div class="form-group" id="groupRejectReason" style="display: none; background: #fff1f2; padding: 12px; border-radius: var(--radius-md); border: 1.5px solid #fecdd3;">
+        <div class="form-group" id="groupRejectReason" style="display: none; background: #fff1f2; padding: 14px; border-radius: var(--radius-md); border: 1.5px solid #fecdd3;">
           <label class="form-label" style="color: #9f1239; font-weight: 700;">
             <i class="fas fa-exclamation-circle"></i> เหตุผลที่ไม่สามารถดำเนินการได้ (สำหรับให้ประชาชนตรวจสอบได้) <span class="req">*</span>
           </label>
           <textarea id="editRejectReason" class="v3-input" rows="2" placeholder="ระบุเหตุผล เช่น ส่งต่อหน่วยงานภายนอก (แขวงทางหลวงชนบท / การไฟฟ้า), อยู่นอกเหนืออำนาจหน้าที่ของเทศบาล ฯลฯ"></textarea>
-        </div>
-
-        <!-- 📷 & 📍 Staff Attachments (Photo & GPS Location) -->
-        <div class="form-group" id="groupAttachedAssets" style="background: #f8fafc; padding: 14px; border-radius: var(--radius-md); border: 1.5px dashed var(--primary-light);">
-          <div style="font-weight: 700; color: var(--primary-dark); font-size: 0.95rem; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
-            <span><i class="fas fa-paperclip"></i> แนบรูปถ่ายสภาพปัญหาและพิกัด GPS</span>
-            <span style="font-size: 0.75rem; color: var(--slate-500); font-weight: 400;">ฟังก์ชันเทียบเท่าโหมดประชาชน</span>
-          </div>
-
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
-            <!-- 1. Photo Section -->
-            <div style="background: #ffffff; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--slate-200);">
-              <label class="form-label" style="font-size: 0.82rem; margin-bottom: 6px; font-weight: 700;">
-                <i class="fas fa-camera text-primary"></i> รูปถ่ายสภาพปัญหา
-              </label>
-              
-              <div style="display: flex; gap: 6px; margin-bottom: 8px;">
-                <button type="button" class="btn-sub-action" onclick="triggerStaffCamera()" style="flex: 1; padding: 6px 8px; font-size: 0.8rem;">
-                  <i class="fas fa-camera"></i> ถ่ายรูป
-                </button>
-                <button type="button" class="btn-sub-action" onclick="triggerStaffGallery()" style="flex: 1; padding: 6px 8px; font-size: 0.8rem;">
-                  <i class="fas fa-image"></i> เลือกไฟล์
-                </button>
-              </div>
-
-              <input type="file" id="staffCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="handleStaffPhotoSelect(event)">
-              <input type="file" id="staffGalleryInput" accept="image/*" style="display:none;" onchange="handleStaffPhotoSelect(event)">
-              <input type="hidden" id="editPhotoData" value="">
-
-              <div id="editPhotoPreviewArea" style="min-height: 40px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 4px; border: 1px dashed #cbd5e1; padding: 6px;">
-                <span style="font-size: 0.78rem; color: var(--slate-400);">ยังไม่มีรูปภาพ</span>
-              </div>
-            </div>
-
-            <!-- 2. GPS Section -->
-            <div style="background: #ffffff; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--slate-200);">
-              <label class="form-label" style="font-size: 0.82rem; margin-bottom: 6px; font-weight: 700;">
-                <i class="fas fa-map-marker-alt text-primary"></i> พิกัดแผนที่ (GPS)
-              </label>
-
-              <div style="display: flex; gap: 6px; margin-bottom: 8px;">
-                <button type="button" class="btn-sub-action" onclick="getStaffGpsLocation()" style="flex: 1; padding: 6px 8px; font-size: 0.8rem;">
-                  <i class="fas fa-crosshairs"></i> ดึงพิกัดปัจจุบัน
-                </button>
-                <button type="button" class="btn-sub-action danger" onclick="removeStaffGpsLocation()" style="padding: 6px 10px; font-size: 0.8rem;" title="ลบพิกัด">
-                  <i class="fas fa-trash-alt"></i>
-                </button>
-              </div>
-
-              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
-                <input type="text" id="editGpsLat" class="v3-input" placeholder="Latitude" style="font-size: 0.78rem; padding: 4px 6px;" oninput="updateStaffGpsPreview()">
-                <input type="text" id="editGpsLng" class="v3-input" placeholder="Longitude" style="font-size: 0.78rem; padding: 4px 6px;" oninput="updateStaffGpsPreview()">
-              </div>
-
-              <div id="editGpsPreviewArea" style="font-size: 0.78rem; color: var(--slate-600); min-height: 24px; display: flex; align-items: center;">
-                <span style="color: var(--slate-400);">ยังไม่ได้ระบุพิกัด</span>
-              </div>
-            </div>
-          </div>
         </div>
 
         <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -361,6 +430,45 @@
           <button type="submit" class="btn-v3-pill" style="flex: 1;" id="btnSaveProposal">บันทึกข้อมูล</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- 📸 Photo Attachment Choice Modal for Staff (Identical Gold Standard to Citizen Form) -->
+  <div class="modal-overlay" id="staffPhotoChoiceModal" onclick="closeStaffPhotoChoiceModal(event)">
+    <div class="modal-card" style="max-width: 420px; text-align: center; padding: 24px;" onclick="event.stopPropagation()">
+      <div style="width: 56px; height: 56px; border-radius: 50%; background: #f3e8ff; color: var(--primary); display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 12px;">
+        <i class="fas fa-camera"></i>
+      </div>
+      <h3 style="font-family: var(--font-heading); color: var(--primary-dark); font-size: 1.2rem; margin-bottom: 6px;">เลือกวิธีแนบรูปถ่าย</h3>
+      <p style="font-size: 0.85rem; color: var(--slate-500); margin-bottom: 20px;">แตะเลือกถ่ายภาพสภาพปัญหาใหม่ หรือเลือกรูปที่มีอยู่ในเครื่อง</p>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+        <!-- Option 1: Live Camera -->
+        <button type="button" class="btn-popup-choice" onclick="triggerStaffCameraInput()">
+          <div class="popup-choice-icon" style="background: #f3e8ff; color: var(--primary);">
+            <i class="fas fa-camera"></i>
+          </div>
+          <div class="popup-choice-text">
+            <span class="popup-choice-title">ถ่ายภาพด้วยกล้อง</span>
+            <span class="popup-choice-sub">เปิดกล้องถ่ายสดทันที</span>
+          </div>
+          <i class="fas fa-chevron-right" style="color: var(--slate-300); font-size: 1.1rem;"></i>
+        </button>
+
+        <!-- Option 2: Gallery / Files -->
+        <button type="button" class="btn-popup-choice" onclick="triggerStaffGalleryInput()">
+          <div class="popup-choice-icon" style="background: #e0f2fe; color: #0284c7;">
+            <i class="fas fa-images"></i>
+          </div>
+          <div class="popup-choice-text">
+            <span class="popup-choice-title">เลือกรูปจากเครื่อง</span>
+            <span class="popup-choice-sub">อัลบั้มภาพ / แกลเลอรีในเครื่อง</span>
+          </div>
+          <i class="fas fa-chevron-right" style="color: var(--slate-300); font-size: 1.1rem;"></i>
+        </button>
+      </div>
+
+      <button type="button" class="btn-v3-pill secondary" style="width: 100%;" onclick="closeStaffPhotoChoiceModal()">ยกเลิก</button>
     </div>
   </div>
 
