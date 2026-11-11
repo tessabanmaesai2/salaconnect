@@ -90,7 +90,7 @@ async function loadSettings() {
 
       const commSelect = document.getElementById('printCommunityFilter');
       if (commSelect && appSettings.communities) {
-        commSelect.innerHTML = '<option value="all">ทุกชุมชน (9 ชุมชน)</option>' +
+        commSelect.innerHTML = '<option value="all">ทุกชุมชน (10 ชุมชน)</option>' +
           appSettings.communities.map(c => `<option value="${c}">${c}</option>`).join('');
       }
 

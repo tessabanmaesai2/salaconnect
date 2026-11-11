@@ -405,7 +405,7 @@ const server = http.createServer(async (req, res) => {
                 return sendJson(res, 200, {
                     success: true,
                     appName: state.settings.appName || 'SALA CONNECT',
-                    version: '1.0.0',
+                    version: '4.0.0',
                     port: PORT,
                     status: 'OK',
                     uptime: process.uptime(),
@@ -897,6 +897,30 @@ const server = http.createServer(async (req, res) => {
                 saveNews();
                 logSecurity('NEWS_CREATE', currentUser.username, req, `เพิ่มข่าว/กำหนดการ: ${newNews.title}`);
                 return sendJson(res, 201, { success: true, data: newNews });
+            }
+
+            // PUT /api/news/:id (Update News - Admin only)
+            if (apiPath.startsWith('/news/') && req.method === 'PUT') {
+                const currentUser = getSessionUser(req);
+                if (!currentUser || (currentUser.role !== 'Admin' && currentUser.role !== 'Super Admin')) {
+                    return sendError(res, 403, 'สิทธิ์ไม่เพียงพอ');
+                }
+                const id = parseInt(apiPath.split('/')[2], 10);
+                const index = state.news.findIndex(n => n.id === id);
+                if (index === -1) return sendError(res, 404, 'ไม่พบข่าวที่ต้องการแก้ไข');
+
+                const body = await parseBody(req);
+                state.news[index] = {
+                    ...state.news[index],
+                    date: body.date || state.news[index].date,
+                    title: (body.title !== undefined) ? body.title : state.news[index].title,
+                    detail: (body.detail !== undefined) ? body.detail : state.news[index].detail,
+                    published: (body.published !== undefined) ? body.published : state.news[index].published,
+                    updatedAt: new Date().toISOString()
+                };
+                saveNews();
+                logSecurity('NEWS_UPDATE', currentUser.username, req, `แก้ไขข่าว/กำหนดการ: ${state.news[index].title}`);
+                return sendJson(res, 200, { success: true, message: 'แก้ไขข่าวเรียบร้อยแล้ว', data: state.news[index] });
             }
 
             // DELETE /api/news/:id (Admin only)

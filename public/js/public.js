@@ -1,17 +1,15 @@
 /**
  * ============================================================
- * MAESAI SALA CONNECT — Public Citizen SPA Logic (v3.8.5)
+ * MAESAI SALA CONNECT — Public Citizen SPA Logic (v4.0.0)
  * ============================================================
  */
 
-let currentUser = null;
 let allNews = [];
 let allProposals = [];
 let currentCitizenPhoto = null;
 let currentGpsData = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-  checkAuthSession();
   loadNews();
 
   // Set anti-bot form timestamp
@@ -210,111 +208,6 @@ function removeGpsLocation() {
   }
 }
 
-// ─── AUTHENTICATION CHECK ────────────────────────────────────
-async function checkAuthSession() {
-  const token = localStorage.getItem('sala_token');
-  if (!token) {
-    updateAuthUI(null);
-    return;
-  }
-  try {
-    const res = await fetch('/api/auth/me', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    });
-    const data = await res.json();
-    if (data.success && data.user) {
-      currentUser = data.user;
-      updateAuthUI(currentUser);
-    } else {
-      localStorage.removeItem('sala_token');
-      updateAuthUI(null);
-    }
-  } catch (e) {
-    updateAuthUI(null);
-  }
-}
-
-function updateAuthUI(user) {
-  const btnLogin = document.getElementById('btnLoginTrigger');
-  const staffSection = document.getElementById('userStaffSection');
-  const staffNameTag = document.getElementById('staffNameTag');
-  const btnAddNews = document.getElementById('btnAddNewsBtn');
-
-  if (user) {
-    if (btnLogin) btnLogin.classList.add('hidden');
-    if (staffSection) staffSection.classList.remove('hidden');
-    if (staffNameTag) staffNameTag.textContent = user.name || user.username;
-    if (btnAddNews) btnAddNews.classList.remove('hidden');
-  } else {
-    if (btnLogin) btnLogin.classList.remove('hidden');
-    if (staffSection) staffSection.classList.add('hidden');
-    if (btnAddNews) btnAddNews.classList.add('hidden');
-  }
-}
-
-function openLoginModal() {
-  const modal = document.getElementById('loginModal');
-  if (modal) modal.classList.add('active');
-}
-
-function closeLoginModal() {
-  const modal = document.getElementById('loginModal');
-  if (modal) modal.classList.remove('active');
-}
-
-async function handleStaffLogin(e) {
-  e.preventDefault();
-  const username = document.getElementById('loginUser').value.trim();
-  const password = document.getElementById('loginPass').value.trim();
-  const btn = document.getElementById('btnLoginSubmit');
-
-  if (!username || !password) return alert('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
-
-  btn.disabled = true;
-  btn.textContent = 'กำลังตรวจสอบ...';
-
-  try {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (data.success && data.token) {
-      localStorage.setItem('sala_token', data.token);
-      currentUser = data.user;
-      updateAuthUI(currentUser);
-      closeLoginModal();
-      alert(`ยินดีต้อนรับ เจ้าหน้าที่: ${currentUser.name || currentUser.username}`);
-      loadNews();
-    } else {
-      alert(data.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
-    }
-  } catch (err) {
-    alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'ตกลง';
-  }
-}
-
-async function handleLogout() {
-  const token = localStorage.getItem('sala_token');
-  if (token) {
-    try {
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-    } catch (e) {}
-  }
-  localStorage.removeItem('sala_token');
-  currentUser = null;
-  updateAuthUI(null);
-  alert('ออกจากระบบเรียบร้อยแล้ว');
-  switchPage('home');
-}
-
 // ─── SPA TAB SWITCHING ───────────────────────────────────────
 function switchPage(page) {
   document.getElementById('tab-home').classList.add('hidden');
@@ -341,7 +234,80 @@ function switchPage(page) {
   }
 }
 
-// ─── NEWS MODULE ─────────────────────────────────────────────
+// ─── NEWS & COMMUNITY SCHEDULE MODULE (Citizen Read-Only) ───
+function renderNewsCard(n) {
+  const detail = n.detail || '';
+  const title = n.title || '';
+
+  // Extract structured info from detail
+  const dateMatch = detail.match(/(วัน[ก-๙]+)?ที่\s*(\d+)\s*([ก-๙]+)\s*(\d{4})?/);
+  const timeMatch = detail.match(/เวลา\s*([\d\.\s–\-]+น\.)/);
+  const locMatch = detail.match(/ณ\s*([^\n\r]+)/) || detail.match(/(วัด[^\n\r]+|ศาลา[^\n\r]+|สำนักสงฆ์[^\n\r]+)/);
+
+  const dayName = dateMatch ? (dateMatch[1] || '').trim() : '';
+  const dayNum = dateMatch ? dateMatch[2] : '';
+  const monthName = dateMatch ? dateMatch[3] : '';
+  const yearNum = dateMatch ? (dateMatch[4] || '2569') : '2569';
+  const timeStr = timeMatch ? timeMatch[1].trim() : '';
+  let location = locMatch ? locMatch[0].replace(/^ณ\s*/, '').trim() : '';
+
+  // Extract community from title or detail
+  let commName = title.replace(/^กำหนดการประชาคม\s*/, '').trim();
+  if (!commName && detail.includes('ชุมชน')) {
+    const cm = detail.match(/ชุมชน\s*([^\s\n]+)/);
+    if (cm) commName = cm[1];
+  }
+
+  // If it's a community meeting / schedule event with date
+  if (dayNum && monthName) {
+    return `
+      <div class="event-card">
+        <div class="event-date-tile">
+          <div class="event-month-header">${escapeHtml(monthName)}</div>
+          <div class="event-day-number">${escapeHtml(dayNum)}</div>
+          <div class="event-day-name">${escapeHtml(dayName || 'วันประชาคม')}</div>
+        </div>
+        <div class="event-body">
+          <div class="event-meta-row">
+            ${commName ? `<span class="event-community-pill"><i class="fas fa-users"></i> ${escapeHtml(commName)}</span>` : ''}
+            <span class="event-year-pill">ประจำปี พ.ศ. ${escapeHtml(yearNum)}</span>
+          </div>
+          <div class="event-title">${escapeHtml(title)}</div>
+          <div class="event-info-grid">
+            ${timeStr ? `
+              <div class="event-info-item">
+                <span class="event-info-icon"><i class="far fa-clock"></i></span>
+                <span class="event-info-text">เวลา <strong>${escapeHtml(timeStr)}</strong></span>
+              </div>
+            ` : ''}
+            ${location ? `
+              <div class="event-info-item">
+                <span class="event-info-icon"><i class="fas fa-map-marker-alt"></i></span>
+                <span class="event-info-text">สถานที่: <strong>${escapeHtml(location)}</strong></span>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Fallback: General News announcement
+  return `
+    <div class="event-card">
+      <div class="event-date-tile" style="background: #f1f5f9;">
+        <div class="event-month-header" style="background: #e2e8f0; color: #475569;">ประกาศ</div>
+        <div class="event-info-icon" style="font-size: 1.6rem; color: #64748b; margin: 6px 0;"><i class="fas fa-bullhorn"></i></div>
+        <div class="event-day-name">${escapeHtml(n.date || '')}</div>
+      </div>
+      <div class="event-body">
+        <div class="event-title">${escapeHtml(title)}</div>
+        <div style="font-size: 0.85rem; color: var(--slate-600); line-height: 1.45; white-space: pre-line;">${escapeHtml(detail)}</div>
+      </div>
+    </div>
+  `;
+}
+
 async function loadNews() {
   const container = document.getElementById('newsContainer');
   try {
@@ -349,67 +315,12 @@ async function loadNews() {
     const data = await res.json();
     if (data.success && Array.isArray(data.data) && data.data.length > 0) {
       allNews = data.data;
-      container.innerHTML = allNews.map(n => `
-        <div class="news-card">
-          <div class="news-card-date"><i class="fas fa-calendar-alt"></i> ${n.date || ''}</div>
-          <div class="news-card-title">${escapeHtml(n.title)}</div>
-          <div class="news-card-preview">${escapeHtml(n.detail)}</div>
-          ${currentUser && (currentUser.role === 'Admin' || currentUser.role === 'Super Admin') ? `
-            <div style="margin-top: 10px; text-align: right;">
-              <button class="btn-v3-pill danger" style="padding: 4px 10px; font-size: 0.75rem;" onclick="deleteNews(${n.id})">
-                <i class="fas fa-trash"></i> ลบข่าว
-              </button>
-            </div>
-          ` : ''}
-        </div>
-      `).join('');
+      container.innerHTML = allNews.map(n => renderNewsCard(n)).join('');
     } else {
       container.innerHTML = `<div style="text-align: center; padding: 25px; color: var(--slate-400);">ยังไม่มีประกาศข่าวสารในขณะนี้</div>`;
     }
   } catch (e) {
     container.innerHTML = `<div style="text-align: center; padding: 25px; color: var(--danger);">ไม่สามารถโหลดข่าวสารได้</div>`;
-  }
-}
-
-function openAddNewsModal() {
-  const modal = document.getElementById('newsModal');
-  if (modal) modal.classList.add('active');
-}
-
-function closeAddNewsModal() {
-  const modal = document.getElementById('newsModal');
-  if (modal) modal.classList.remove('active');
-}
-
-async function submitNews(e) {
-  e.preventDefault();
-  const token = localStorage.getItem('sala_token');
-  if (!token) return alert('กรุณาเข้าสู่ระบบก่อนดำเนินการ');
-
-  const title = document.getElementById('newsTitle').value.trim();
-  const detail = document.getElementById('newsDetail').value.trim();
-  if (!title || !detail) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
-
-  try {
-    const res = await fetch('/api/news', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ title, detail })
-    });
-    const data = await res.json();
-    if (data.success) {
-      alert('บันทึกข่าวสารเรียบร้อยแล้ว');
-      document.getElementById('formAddNews').reset();
-      closeAddNewsModal();
-      loadNews();
-    } else {
-      alert(data.error || 'ไม่สามารถบันทึกข่าวสารได้');
-    }
-  } catch (err) {
-    alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
   }
 }
 

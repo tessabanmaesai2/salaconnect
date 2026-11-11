@@ -442,7 +442,7 @@ function openEditModal(id) {
 
   document.getElementById('modalTitle').textContent = `แก้ไขข้อเสนอโครงการ: ${p.code || ''}`;
   document.getElementById('editId').value = p.id;
-  document.getElementById('editCommunity').value = p.community || 'แม่สาย หมู่ 1';
+  document.getElementById('editCommunity').value = p.community || 'ชุมชนแม่สาย หมู่ 1';
   document.getElementById('editPrefix').value = p.prefix || 'นาย';
   document.getElementById('editName').value = p.name || '';
   document.getElementById('editAge').value = p.age || '';
@@ -609,4 +609,130 @@ function escapeHtml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+// ─── ANNOUNCEMENTS & NEWS MANAGEMENT (Staff Only) ────────────
+let manageNewsData = [];
+
+async function openManageNewsModal() {
+  const modal = document.getElementById('manageNewsModal');
+  if (modal) modal.classList.add('active');
+  resetManageNewsForm();
+  await loadManageNewsList();
+}
+
+function closeManageNewsModal() {
+  const modal = document.getElementById('manageNewsModal');
+  if (modal) modal.classList.remove('active');
+}
+
+async function loadManageNewsList() {
+  const container = document.getElementById('manageNewsList');
+  if (!container) return;
+  try {
+    const res = await fetch('/api/news');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.data)) {
+      manageNewsData = data.data;
+      if (manageNewsData.length === 0) {
+        container.innerHTML = '<div style="text-align: center; padding: 20px; color: var(--slate-400);">ยังไม่มีรายการประกาศ</div>';
+        return;
+      }
+      container.innerHTML = manageNewsData.map(n => `
+        <div style="background: #ffffff; border: 1px solid var(--slate-200); border-radius: var(--radius-sm); padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+          <div style="flex: 1; min-width: 0;">
+            <div style="font-weight: 700; font-size: 0.9rem; color: var(--slate-800);">${escapeHtml(n.title)}</div>
+            <div style="font-size: 0.8rem; color: var(--slate-500); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(n.detail.replace(/\\n/g, ' '))}</div>
+          </div>
+          <div style="display: flex; gap: 6px; flex-shrink: 0;">
+            <button type="button" class="btn-sub-action" style="padding: 4px 10px; font-size: 0.78rem; height: 30px;" onclick="editManageNews(${n.id})">
+              <i class="fas fa-edit"></i> แก้ไข
+            </button>
+            <button type="button" class="btn-sub-action danger" style="padding: 4px 10px; font-size: 0.78rem; height: 30px;" onclick="deleteManageNews(${n.id})">
+              <i class="fas fa-trash"></i> ลบ
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+  } catch (e) {
+    container.innerHTML = '<div style="color: var(--danger); padding: 10px;">เกิดข้อผิดพลาดในการโหลดรายการ</div>';
+  }
+}
+
+function editManageNews(id) {
+  const item = manageNewsData.find(n => n.id === id);
+  if (!item) return;
+  document.getElementById('manageNewsId').value = item.id;
+  document.getElementById('manageNewsTitle').value = item.title || '';
+  document.getElementById('manageNewsDetail').value = item.detail || '';
+  document.getElementById('manageNewsFormTitle').textContent = `แก้ไขประกาศ: ${item.title}`;
+  document.getElementById('btnSaveManageNews').textContent = 'บันทึกการแก้ไข';
+  document.getElementById('btnCancelNewsEdit').style.display = 'inline-flex';
+}
+
+function resetManageNewsForm() {
+  document.getElementById('manageNewsId').value = '';
+  document.getElementById('manageNewsTitle').value = '';
+  document.getElementById('manageNewsDetail').value = '';
+  document.getElementById('manageNewsFormTitle').textContent = '+ เพิ่มประกาศ/กำหนดการประชาคมใหม่';
+  document.getElementById('btnSaveManageNews').textContent = 'บันทึกประกาศ';
+  document.getElementById('btnCancelNewsEdit').style.display = 'none';
+}
+
+async function handleManageNewsSubmit(e) {
+  e.preventDefault();
+  const token = localStorage.getItem('sala_token');
+  if (!token) return alert('กรุณาเข้าสู่ระบบเจ้าหน้าที่ก่อนดำเนินการ');
+
+  const id = document.getElementById('manageNewsId').value.trim();
+  const title = document.getElementById('manageNewsTitle').value.trim();
+  const detail = document.getElementById('manageNewsDetail').value.trim();
+  if (!title || !detail) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+
+  const isEditing = Boolean(id);
+  const url = isEditing ? `/api/news/${id}` : '/api/news';
+  const method = isEditing ? 'PUT' : 'POST';
+
+  try {
+    const res = await fetch(url, {
+      method: method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ title, detail })
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert(isEditing ? 'แก้ไขประกาศเรียบร้อยแล้ว' : 'เพิ่มประกาศเรียบร้อยแล้ว');
+      resetManageNewsForm();
+      await loadManageNewsList();
+    } else {
+      alert(data.error || 'ไม่สามารถดำเนินการได้');
+    }
+  } catch (err) {
+    alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+  }
+}
+
+async function deleteManageNews(id) {
+  if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบประกาศนี้?')) return;
+  const token = localStorage.getItem('sala_token');
+  if (!token) return alert('กรุณาเข้าสู่ระบบก่อน');
+  try {
+    const res = await fetch(`/api/news/${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+      alert('ลบประกาศเรียบร้อยแล้ว');
+      await loadManageNewsList();
+    } else {
+      alert(data.error || 'ลบประกาศไม่สำเร็จ');
+    }
+  } catch (e) {
+    alert('เกิดข้อผิดพลาด');
+  }
 }

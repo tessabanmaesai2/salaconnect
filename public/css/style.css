@@ -424,46 +424,157 @@ textarea.v3-input {
   gap: 12px;
 }
 
-/* ─── NEWS CARDS ─────────────────────────────────────────── */
-.news-card {
+/* ─── EVENT & SCHEDULE CARDS (CIVIC SERVICE DESIGN) ──────── */
+.event-card {
+  display: flex;
+  align-items: stretch;
   background: #ffffff;
-  border-radius: var(--radius-md);
-  padding: 16px;
-  margin-bottom: 12px;
-  border-left: 5px solid var(--primary);
-  box-shadow: var(--shadow-sm);
-  cursor: pointer;
-  transition: 0.2s ease;
-  border-top: 1px solid var(--slate-100);
-  border-right: 1px solid var(--slate-100);
-  border-bottom: 1px solid var(--slate-100);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--slate-200);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  margin-bottom: 14px;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
 }
-.news-card:hover {
+.event-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
-  border-left-color: var(--gold);
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 24px rgba(107, 33, 168, 0.08);
 }
-.news-card-date {
-  font-size: 0.75rem;
-  color: var(--slate-400);
+
+/* 📅 Calendar Tile on Left */
+.event-date-tile {
+  width: 96px;
+  min-width: 96px;
+  background: #fdfcfe;
+  border-right: 1px solid var(--slate-200);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 14px 6px;
+  user-select: none;
+}
+.event-month-header {
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--primary);
+  background: #f3e8ff;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
   margin-bottom: 4px;
+  letter-spacing: 0.3px;
+}
+.event-day-number {
+  font-family: var(--font-heading);
+  font-size: 1.95rem;
+  font-weight: 800;
+  color: var(--slate-900);
+  line-height: 1.05;
+  margin: 2px 0;
+}
+.event-day-name {
+  font-family: var(--font-body);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--slate-500);
+}
+
+/* 📝 Event Details on Right */
+.event-body {
+  flex: 1;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+}
+.event-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.event-community-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #f5f3ff;
+  color: var(--primary-dark);
+  font-family: var(--font-heading);
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  border: 1px solid #ddd6fe;
+}
+.event-year-pill {
+  font-size: 0.74rem;
+  color: var(--slate-400);
   font-weight: 500;
 }
-.news-card-title {
+
+.event-title {
   font-family: var(--font-heading);
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--slate-800);
-  margin-bottom: 6px;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: var(--slate-900);
+  line-height: 1.35;
+  margin: 2px 0;
 }
-.news-card-preview {
-  font-size: 0.85rem;
+
+.event-info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 3px;
+}
+.event-info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.84rem;
   color: var(--slate-600);
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  line-height: 1.3;
+}
+.event-info-icon {
+  width: 16px;
+  text-align: center;
+  color: var(--primary);
+  font-size: 0.85rem;
+}
+.event-info-text strong {
+  color: var(--slate-800);
+  font-weight: 600;
+}
+
+/* Legacy fallback support */
+.news-card {
+  display: none;
+}
+
+@media (max-width: 540px) {
+  .event-card {
+    flex-direction: row;
+  }
+  .event-date-tile {
+    width: 80px;
+    min-width: 80px;
+    padding: 10px 4px;
+  }
+  .event-day-number {
+    font-size: 1.65rem;
+  }
+  .event-body {
+    padding: 12px 14px;
+  }
+  .event-title {
+    font-size: 0.95rem;
+  }
 }
 
 /* ─── MANAGEMENT FULL-WIDTH WORKSPACE ───────────────────── */
@@ -978,6 +1089,52 @@ textarea.v3-input {
   color: #065f46;
   padding: 12px 14px;
   border-radius: var(--radius-md);
+}
+
+/* ─── PDPA ERGONOMIC TOUCH CARD ───────────────────────── */
+.pdpa-touch-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  background: #ffffff;
+  border: 1.5px solid var(--slate-300);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+.pdpa-touch-card:hover {
+  border-color: var(--primary);
+  background: #faf5ff;
+  box-shadow: 0 4px 12px rgba(107, 33, 168, 0.06);
+}
+.pdpa-checkbox {
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  cursor: pointer;
+  accent-color: var(--primary);
+  margin-top: 2px !important;
+}
+.pdpa-text-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
+.pdpa-heading {
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--slate-900);
+}
+.pdpa-body {
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  color: var(--slate-600);
+  line-height: 1.5;
 }
 
 /* ─── RESPONSIVE BREAKPOINTS ─────────────────────────────── */
