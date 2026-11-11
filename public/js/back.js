@@ -10,6 +10,15 @@ let allRadarLogs = [];
 let currentThreatFilter = 'ALL';
 
 document.addEventListener('DOMContentLoaded', async () => {
+  const wipeInputs = () => {
+    const uInp = document.getElementById('masterKeyUsernameInput');
+    const pInp = document.getElementById('masterKeyPasswordInput');
+    if (uInp) uInp.value = '';
+    if (pInp) pInp.value = '';
+  };
+  wipeInputs();
+  setTimeout(wipeInputs, 100);
+  setTimeout(wipeInputs, 300);
   await checkMasterAuth();
 });
 
@@ -43,6 +52,12 @@ function showMasterLogin() {
   document.getElementById('masterLoginScreen').classList.remove('hidden');
   document.getElementById('masterDashboardScreen').classList.add('hidden');
   document.getElementById('btnMasterLogout').classList.add('hidden');
+  const form = document.getElementById('formMasterLogin');
+  if (form) form.reset();
+  const uInp = document.getElementById('masterKeyUsernameInput');
+  const pInp = document.getElementById('masterKeyPasswordInput');
+  if (uInp) uInp.value = '';
+  if (pInp) pInp.value = '';
 }
 
 function togglePasswordVisibility(inputId, eyeId) {

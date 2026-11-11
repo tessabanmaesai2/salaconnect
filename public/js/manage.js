@@ -91,6 +91,14 @@ function showLoginGate() {
     staffNav.classList.add('hidden');
     staffNav.style.display = 'none';
   }
+
+  // Ensure fields are 100% blank by default
+  const f = document.getElementById('formStaffGateLogin');
+  if (f) f.reset();
+  const u = document.getElementById('gateUser');
+  const p = document.getElementById('gatePass');
+  if (u) u.value = '';
+  if (p) p.value = '';
 }
 
 function showDashboard() {
@@ -977,6 +985,14 @@ function exportToExcel() {
   showToast(`ส่งออก Excel สำเร็จ (${targetProposals.length} รายการ)`, 'success');
 }
 
+// ─── STATUS NORMALIZATION HELPER ─────────────────────────────
+function normalizeStatus(st) {
+  let s = st || 'เสนอเรื่องเข้ามา';
+  if (s === 'รอดำเนินการ' || s === 'เข้าระบบแล้ว') s = 'เสนอเรื่องเข้ามา';
+  if (s === 'บรรจุในแผนชุมชน') s = 'บรรจุในแผน';
+  return s;
+}
+
 // ─── EXPORT TO PDF (Direct Client-Side Download, Matching Official Print Standard) ──
 async function exportToPDF() {
   const targetProposals = filteredProposals.filter(p => selectedManageIds.has(p.id));
@@ -997,135 +1013,142 @@ async function exportToPDF() {
   const dateFormattedThai = `${today.getDate()} ${thaiMonths[today.getMonth()]} พ.ศ. ${yearBE}`;
   const filenameDate = `${String(today.getDate()).padStart(2, '0')}-${String(today.getMonth() + 1).padStart(2, '0')}-${yearBE}`;
 
-  // Build Table Rows (Strict: NO PRJ CODE, clean Thai date/time, clean wrap)
-  let rowCounter = 0;
-  const tableRowsHtml = targetProposals.map(p => {
-    rowCounter++;
-    const st = normalizeStatus(p.status);
-    const reason = p.reject_reason || p.notes || '';
-    const dateFormatted = formatThaiDateTimeBE(p.timestamp || p.created_at || p.pdpa_timestamp, false);
-
-    return `
-      <tr>
-        <td style="border: 1px solid #333333; padding: 6px 4px; text-align: center; vertical-align: top; font-weight: 700;">${rowCounter}</td>
-        <td style="border: 1px solid #333333; padding: 6px 6px; text-align: center; vertical-align: top; font-size: 8.5pt;">${dateFormatted}</td>
-        <td style="border: 1px solid #333333; padding: 6px 8px; vertical-align: top; font-weight: 600; font-size: 9pt;">${escapeHtml(p.community || '-')}</td>
-        <td style="border: 1px solid #333333; padding: 6px 8px; vertical-align: top;">
-          <div style="font-weight: 600; font-size: 9.5pt; color: #0f172a; line-height: 1.35;">${escapeHtml(p.problem || '-')}</div>
-          <div style="font-size: 8.5pt; color: #475569; margin-top: 4px; line-height: 1.3;"><b>แนวทางแก้ไข:</b> ${escapeHtml(p.solution || '-')}</div>
-        </td>
-        <td style="border: 1px solid #333333; padding: 6px 8px; vertical-align: top; font-size: 8.5pt;">
-          <div>${escapeHtml(p.location || '-')}</div>
-          ${p.gps_lat && p.gps_lng ? `<div style="font-size: 7.5pt; color: #0284c7; margin-top: 2px;">พิกัด GPS: ${p.gps_lat}, ${p.gps_lng}</div>` : ''}
-          ${p.photo ? `<div style="font-size: 7.5pt; color: #7c3aed; margin-top: 2px; font-weight: 600;">[มีรูปภาพแนบ]</div>` : ''}
-        </td>
-        <td style="border: 1px solid #333333; padding: 6px 8px; vertical-align: top; font-size: 8.5pt;">
-          <div style="font-weight: 600;">${escapeHtml(p.prefix || '')}${escapeHtml(p.name || '-')}</div>
-          <div style="color: #64748b; font-size: 8pt; margin-top: 2px;">${p.age ? `อายุ ${p.age} ปี` : ''} ${p.phone ? `โทร: ${escapeHtml(p.phone)}` : ''}</div>
-        </td>
-        <td style="border: 1px solid #333333; padding: 6px 6px; text-align: center; vertical-align: top; font-size: 8.5pt;">
-          <div style="font-weight: 700; color: ${st === 'เสนอเรื่องเข้ามา' ? '#92400e' : (st === 'ไม่สามารถดำเนินการได้' ? '#991b1b' : '#1e293b')};">${st}</div>
-          ${st === 'ไม่สามารถดำเนินการได้' && reason ? `<div style="font-size: 7.5pt; color: #9f1239; margin-top: 2px;">(${escapeHtml(reason)})</div>` : ''}
-        </td>
-      </tr>
-    `;
-  }).join('');
-
-  // Build Appendix if photos included
-  let appendixHtml = '';
-  if (includePhotos) {
-    const photosItems = targetProposals.filter(p => p.photo);
-    if (photosItems.length > 0) {
-      const cardsHtml = photosItems.map((p, idx) => `
-        <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; margin-bottom: 12px; background: #ffffff; page-break-inside: avoid; break-inside: avoid;">
-          <div style="display: flex; gap: 14px;">
-            <div style="width: 200px; flex-shrink: 0; text-align: center;">
-              <img src="${p.photo}" style="width: 100%; max-height: 160px; object-fit: cover; border-radius: 4px; border: 1px solid #94a3b8;">
-            </div>
-            <div style="flex: 1; font-size: 9pt; line-height: 1.4;">
-              <div style="font-weight: 700; color: #7c3aed; margin-bottom: 4px;">ภาพประกอบลำดับที่ ${idx + 1}: ${escapeHtml(p.community || '')}</div>
-              <div style="margin-bottom: 3px;"><b>สภาพปัญหา:</b> ${escapeHtml(p.problem || '-')}</div>
-              <div style="margin-bottom: 3px;"><b>แนวทางแก้ไข:</b> ${escapeHtml(p.solution || '-')}</div>
-              <div style="margin-bottom: 3px;"><b>สถานที่:</b> ${escapeHtml(p.location || '-')} ${p.gps_lat && p.gps_lng ? `(GPS: ${p.gps_lat}, ${p.gps_lng})` : ''}</div>
-              <div><b>ผู้เสนอ:</b> ${escapeHtml(p.prefix || '')}${escapeHtml(p.name || '-')} ${p.phone ? `(${escapeHtml(p.phone)})` : ''}</div>
-            </div>
-          </div>
-        </div>
-      `).join('');
-
-      appendixHtml = `
-        <div style="page-break-before: always; break-before: page; margin-top: 20px; padding-top: 14px;">
-          <div style="text-align: center; margin-bottom: 14px;">
-            <div style="font-size: 13pt; font-weight: 700; color: #000000;">ภาคผนวก: ภาพถ่ายสภาพปัญหาและรายละเอียดประกอบข้อเสนอ</div>
-            <div style="font-size: 10pt; color: #475569;">เทศบาลตำบลแม่สาย อำเภอแม่สาย จังหวัดเชียงราย</div>
-          </div>
-          ${cardsHtml}
-        </div>
-      `;
-    }
-  }
-
-  // Create temporary container offscreen
-  const container = document.createElement('div');
-  container.style.position = 'fixed';
-  container.style.left = '-9999px';
-  container.style.top = '0';
-  container.style.width = '1120px';
-  container.style.background = '#ffffff';
-  container.style.color = '#000000';
-  container.style.fontFamily = "'Sarabun', 'Prompt', sans-serif";
-  container.style.padding = '16px';
-  container.style.boxSizing = 'border-box';
-
-  container.innerHTML = `
-    <!-- Header -->
-    <div style="text-align: center; margin-bottom: 14px;">
-      <img src="logo/logoicon.png" style="height: 52px; width: auto; margin: 0 auto 6px auto; display: block;" onerror="this.style.display='none'">
-      <div style="font-size: 14pt; font-weight: 700; color: #000000; line-height: 1.3;">แบบสรุปข้อเสนอโครงการและปัญหาความต้องการของประชาชน</div>
-      <div style="font-size: 11pt; color: #333333; margin-top: 2px;">เทศบาลตำบลแม่สาย อำเภอแม่สาย จังหวัดเชียงราย</div>
-      <div style="font-size: 9pt; color: #64748b; margin-top: 4px;">รายงานข้อมูล ณ วันที่ ${dateFormattedThai} (จำนวนที่เลือกส่งออก ${targetProposals.length} รายการ)</div>
-    </div>
-
-    <!-- Table -->
-    <table style="width: 100%; border-collapse: collapse; font-size: 9pt; margin-top: 8px;">
-      <thead>
-        <tr style="background: #f1f5f9;">
-          <th style="border: 1px solid #333333; padding: 6px 4px; width: 32px; text-align: center;">ที่</th>
-          <th style="border: 1px solid #333333; padding: 6px 6px; width: 120px; text-align: center;">วัน เวลา (พ.ศ.) ที่ส่งเรื่อง</th>
-          <th style="border: 1px solid #333333; padding: 6px 8px; width: 150px; text-align: left;">ชุมชน / หมู่บ้าน</th>
-          <th style="border: 1px solid #333333; padding: 6px 8px; text-align: left;">สภาพปัญหาและแนวทางแก้ไขที่ต้องการ</th>
-          <th style="border: 1px solid #333333; padding: 6px 8px; width: 170px; text-align: left;">สถานที่ดำเนินการ</th>
-          <th style="border: 1px solid #333333; padding: 6px 8px; width: 135px; text-align: left;">ผู้เสนอ (อายุ / เบอร์โทร)</th>
-          <th style="border: 1px solid #333333; padding: 6px 6px; width: 110px; text-align: center;">สถานะ</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${tableRowsHtml}
-      </tbody>
-    </table>
-
-    ${appendixHtml}
-  `;
-
-  document.body.appendChild(container);
-
-  const opt = {
-    margin: [8, 8, 8, 8],
-    filename: `แบบสรุปข้อเสนอโครงการ_เทศบาลตำบลแม่สาย_${filenameDate}.pdf`,
-    image: { type: 'jpeg', quality: 0.95 },
-    html2canvas: { scale: 2, useCORS: true, logging: false },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-    pagebreak: { mode: ['css', 'legacy'] }
-  };
-
+  let container = null;
   try {
+    // Build Table Rows (Strict: NO PRJ CODE, clean Thai date/time, clean wrap)
+    let rowCounter = 0;
+    const tableRowsHtml = targetProposals.map(p => {
+      rowCounter++;
+      const st = normalizeStatus(p.status);
+      const reason = p.reject_reason || p.notes || '';
+      const dateFormatted = formatThaiDateTimeBE(p.timestamp || p.created_at || p.pdpa_timestamp, false);
+
+      return `
+        <tr>
+          <td style="border: 1px solid #333333; padding: 6px 4px; text-align: center; vertical-align: top; font-weight: 700;">${rowCounter}</td>
+          <td style="border: 1px solid #333333; padding: 6px 6px; text-align: center; vertical-align: top; font-size: 8.5pt;">${dateFormatted}</td>
+          <td style="border: 1px solid #333333; padding: 6px 8px; vertical-align: top; font-weight: 600; font-size: 9pt;">${escapeHtml(p.community || '-')}</td>
+          <td style="border: 1px solid #333333; padding: 6px 8px; vertical-align: top;">
+            <div style="font-weight: 600; font-size: 9.5pt; color: #0f172a; line-height: 1.35;">${escapeHtml(p.problem || '-')}</div>
+            <div style="font-size: 8.5pt; color: #475569; margin-top: 4px; line-height: 1.3;"><b>แนวทางแก้ไข:</b> ${escapeHtml(p.solution || '-')}</div>
+          </td>
+          <td style="border: 1px solid #333333; padding: 6px 8px; vertical-align: top; font-size: 8.5pt;">
+            <div>${escapeHtml(p.location || '-')}</div>
+            ${p.gps_lat && p.gps_lng ? `<div style="font-size: 7.5pt; color: #0284c7; margin-top: 2px;">พิกัด GPS: ${p.gps_lat}, ${p.gps_lng}</div>` : ''}
+            ${p.photo ? `<div style="font-size: 7.5pt; color: #7c3aed; margin-top: 2px; font-weight: 600;">[มีรูปภาพแนบ]</div>` : ''}
+          </td>
+          <td style="border: 1px solid #333333; padding: 6px 8px; vertical-align: top; font-size: 8.5pt;">
+            <div style="font-weight: 600;">${escapeHtml(p.prefix || '')}${escapeHtml(p.name || '-')}</div>
+            <div style="color: #64748b; font-size: 8pt; margin-top: 2px;">${p.age ? `อายุ ${p.age} ปี` : ''} ${p.phone ? `โทร: ${escapeHtml(p.phone)}` : ''}</div>
+          </td>
+          <td style="border: 1px solid #333333; padding: 6px 6px; text-align: center; vertical-align: top; font-size: 8.5pt;">
+            <div style="font-weight: 700; color: ${st === 'เสนอเรื่องเข้ามา' ? '#92400e' : (st === 'ไม่สามารถดำเนินการได้' ? '#991b1b' : '#1e293b')};">${st}</div>
+            ${st === 'ไม่สามารถดำเนินการได้' && reason ? `<div style="font-size: 7.5pt; color: #9f1239; margin-top: 2px;">(${escapeHtml(reason)})</div>` : ''}
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    // Build Appendix if photos included
+    let appendixHtml = '';
+    if (includePhotos) {
+      const photosItems = targetProposals.filter(p => p.photo);
+      if (photosItems.length > 0) {
+        const cardsHtml = photosItems.map((p, idx) => `
+          <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 10px; margin-bottom: 12px; background: #ffffff; page-break-inside: avoid; break-inside: avoid;">
+            <div style="display: flex; gap: 14px;">
+              <div style="width: 200px; flex-shrink: 0; text-align: center;">
+                <img src="${p.photo}" style="width: 100%; max-height: 160px; object-fit: cover; border-radius: 4px; border: 1px solid #94a3b8;" crossorigin="anonymous">
+              </div>
+              <div style="flex: 1; font-size: 9pt; line-height: 1.4;">
+                <div style="font-weight: 700; color: #7c3aed; margin-bottom: 4px;">ภาพประกอบลำดับที่ ${idx + 1}: ${escapeHtml(p.community || '')}</div>
+                <div style="margin-bottom: 3px;"><b>สภาพปัญหา:</b> ${escapeHtml(p.problem || '-')}</div>
+                <div style="margin-bottom: 3px;"><b>แนวทางแก้ไข:</b> ${escapeHtml(p.solution || '-')}</div>
+                <div style="margin-bottom: 3px;"><b>สถานที่:</b> ${escapeHtml(p.location || '-')} ${p.gps_lat && p.gps_lng ? `(GPS: ${p.gps_lat}, ${p.gps_lng})` : ''}</div>
+                <div><b>ผู้เสนอ:</b> ${escapeHtml(p.prefix || '')}${escapeHtml(p.name || '-')} ${p.phone ? `(${escapeHtml(p.phone)})` : ''}</div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        appendixHtml = `
+          <div style="page-break-before: always; break-before: page; margin-top: 20px; padding-top: 14px;">
+            <div style="text-align: center; margin-bottom: 14px;">
+              <div style="font-size: 13pt; font-weight: 700; color: #000000;">ภาคผนวก: ภาพถ่ายสภาพปัญหาและรายละเอียดประกอบข้อเสนอ</div>
+              <div style="font-size: 10pt; color: #475569;">เทศบาลตำบลแม่สาย อำเภอแม่สาย จังหวัดเชียงราย</div>
+            </div>
+            ${cardsHtml}
+          </div>
+        `;
+      }
+    }
+
+    // Create temporary container
+    container = document.createElement('div');
+    container.id = 'tempPdfRenderContainer';
+    container.style.position = 'fixed';
+    container.style.left = '0';
+    container.style.top = '0';
+    container.style.width = '1120px';
+    container.style.background = '#ffffff';
+    container.style.color = '#000000';
+    container.style.fontFamily = "'Sarabun', 'Prompt', sans-serif";
+    container.style.padding = '16px';
+    container.style.boxSizing = 'border-box';
+    container.style.zIndex = '-9999';
+    container.style.opacity = '0';
+    container.style.pointerEvents = 'none';
+
+    container.innerHTML = `
+      <!-- Header -->
+      <div style="text-align: center; margin-bottom: 14px;">
+        <img src="logo/logoicon.png" style="height: 52px; width: auto; margin: 0 auto 6px auto; display: block;" onerror="this.style.display='none'">
+        <div style="font-size: 14pt; font-weight: 700; color: #000000; line-height: 1.3;">แบบสรุปข้อเสนอโครงการและปัญหาความต้องการของประชาชน</div>
+        <div style="font-size: 11pt; color: #333333; margin-top: 2px;">เทศบาลตำบลแม่สาย อำเภอแม่สาย จังหวัดเชียงราย</div>
+        <div style="font-size: 9pt; color: #64748b; margin-top: 4px;">รายงานข้อมูล ณ วันที่ ${dateFormattedThai} (จำนวนที่เลือกส่งออก ${targetProposals.length} รายการ)</div>
+      </div>
+
+      <!-- Table -->
+      <table style="width: 100%; border-collapse: collapse; font-size: 9pt; margin-top: 8px;">
+        <thead>
+          <tr style="background: #f1f5f9;">
+            <th style="border: 1px solid #333333; padding: 6px 4px; width: 32px; text-align: center;">ที่</th>
+            <th style="border: 1px solid #333333; padding: 6px 6px; width: 120px; text-align: center;">วัน เวลา (พ.ศ.) ที่ส่งเรื่อง</th>
+            <th style="border: 1px solid #333333; padding: 6px 8px; width: 150px; text-align: left;">ชุมชน / หมู่บ้าน</th>
+            <th style="border: 1px solid #333333; padding: 6px 8px; text-align: left;">สภาพปัญหาและแนวทางแก้ไขที่ต้องการ</th>
+            <th style="border: 1px solid #333333; padding: 6px 8px; width: 170px; text-align: left;">สถานที่ดำเนินการ</th>
+            <th style="border: 1px solid #333333; padding: 6px 8px; width: 135px; text-align: left;">ผู้เสนอ (อายุ / เบอร์โทร)</th>
+            <th style="border: 1px solid #333333; padding: 6px 6px; width: 110px; text-align: center;">สถานะ</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${tableRowsHtml}
+        </tbody>
+      </table>
+
+      ${appendixHtml}
+    `;
+
+    document.body.appendChild(container);
+
+    const opt = {
+      margin: [8, 8, 8, 8],
+      filename: `แบบสรุปข้อเสนอโครงการ_เทศบาลตำบลแม่สาย_${filenameDate}.pdf`,
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: { scale: 1.5, useCORS: true, logging: false },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+      pagebreak: { mode: ['css', 'legacy'] }
+    };
+
     await html2pdf().set(opt).from(container).save();
     showToast(`ดาวน์โหลดไฟล์ PDF เรียบร้อยแล้ว (${targetProposals.length} รายการ)`, 'success');
   } catch (err) {
     console.error('PDF export error:', err);
-    showToast('เกิดข้อผิดพลาดในการสร้างไฟล์ PDF', 'error');
+    showToast(`เกิดข้อผิดพลาดในการสร้างไฟล์ PDF: ${err.message}`, 'error');
   } finally {
-    container.remove();
+    if (container && container.parentNode) {
+      container.parentNode.removeChild(container);
+    }
   }
 }
 
