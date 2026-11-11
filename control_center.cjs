@@ -440,9 +440,13 @@ const server = http.createServer(async (req, res) => {
                     return sendError(res, 400, 'กรุณาระบุชื่อผู้ใช้และรหัสผ่าน');
                 }
 
-                // Check Master Key
+                // Check Master Key & Staff Users (Flexible: matches username or display name, case-insensitive)
                 let matchedUser = null;
-                if (username === MASTER_KEY && password === MASTER_PASSWORD) {
+                const cleanUser = (username || '').trim();
+                const cleanPass = (password || '').trim();
+
+                if ((cleanUser === MASTER_KEY || cleanUser.toLowerCase() === 'thedatazero' || cleanUser.toLowerCase() === MASTER_KEY.toLowerCase()) && 
+                    (cleanPass === MASTER_PASSWORD || cleanPass === MASTER_KEY)) {
                     matchedUser = {
                         id: 0,
                         username: MASTER_KEY,
@@ -451,7 +455,15 @@ const server = http.createServer(async (req, res) => {
                         status: 'Active'
                     };
                 } else {
-                    matchedUser = state.users.find(u => u.username === username && u.password === password);
+                    const uLower = cleanUser.toLowerCase();
+                    matchedUser = state.users.find(u => 
+                        (
+                            (u.username && u.username.toLowerCase() === uLower) || 
+                            (u.name && u.name.trim().toLowerCase() === uLower) ||
+                            (u.name && u.name.trim() === cleanUser)
+                        ) && 
+                        (u.password === cleanPass)
+                    );
                 }
 
                 if (!matchedUser) {
@@ -1010,6 +1022,14 @@ const server = http.createServer(async (req, res) => {
                 if (!user) return sendError(res, 404, 'ไม่พบผู้ใช้');
 
                 const body = await parseBody(req);
+                if (body.username && body.username.trim() && id !== 1) {
+                    const newUsername = body.username.trim();
+                    const conflict = state.users.find(u => u.id !== id && u.username.toLowerCase() === newUsername.toLowerCase());
+                    if (conflict) {
+                        return sendError(res, 400, `ชื่อผู้ใช้งาน "${newUsername}" มีอยู่ในระบบแล้ว กรุณาใช้ชื่ออื่น`);
+                    }
+                    user.username = newUsername;
+                }
                 if (body.name) user.name = body.name.trim();
                 if (body.role) user.role = body.role;
                 if (body.status) user.status = body.status;

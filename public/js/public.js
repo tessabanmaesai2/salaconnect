@@ -10,12 +10,75 @@ let currentCitizenPhoto = null;
 let currentGpsData = null;
 
 document.addEventListener('DOMContentLoaded', () => {
+  checkAuthSession();
   loadNews();
 
   // Set anti-bot form timestamp
   const ft = document.getElementById('formTokenTime');
   if (ft) ft.value = Date.now();
 });
+
+// ─── AUTHENTICATION STATUS (PUBLIC HEADER) ───────────────────
+async function checkAuthSession() {
+  const token = localStorage.getItem('sala_token');
+  const nav = document.getElementById('publicHeaderNav');
+  if (!nav) return;
+
+  if (!token) {
+    nav.innerHTML = `
+      <a href="/sala/manage" class="btn-header" title="เข้าสู่ระบบสำหรับเจ้าหน้าที่เทศบาล">
+        <i class="fas fa-user-lock"></i> เข้าสู่ระบบเจ้าหน้าที่
+      </a>
+    `;
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/auth/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.success && data.user) {
+      nav.innerHTML = `
+        <a href="/sala/manage" class="btn-header btn-header-gold" title="เข้าสู่ระบบบริหารจัดการ">
+          <i class="fas fa-tasks"></i> ระบบจัดการ (${escapeHtml(data.user.name || data.user.username)})
+        </a>
+        <button type="button" class="btn-header btn-header-staff" onclick="handlePublicLogout()" title="ออกจากระบบ">
+          <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
+        </button>
+      `;
+    } else {
+      localStorage.removeItem('sala_token');
+      nav.innerHTML = `
+        <a href="/sala/manage" class="btn-header" title="เข้าสู่ระบบสำหรับเจ้าหน้าที่เทศบาล">
+          <i class="fas fa-user-lock"></i> เข้าสู่ระบบเจ้าหน้าที่
+        </a>
+      `;
+    }
+  } catch (e) {
+    nav.innerHTML = `
+      <a href="/sala/manage" class="btn-header" title="เข้าสู่ระบบสำหรับเจ้าหน้าที่เทศบาล">
+        <i class="fas fa-user-lock"></i> เข้าสู่ระบบเจ้าหน้าที่
+      </a>
+    `;
+  }
+}
+
+async function handlePublicLogout() {
+  if (!confirm('คุณต้องการออกจากระบบหรือไม่?')) return;
+  const token = localStorage.getItem('sala_token');
+  if (token) {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (e) {}
+  }
+  localStorage.removeItem('sala_token');
+  checkAuthSession();
+  alert('ออกจากระบบเรียบร้อยแล้ว');
+}
 
 // ─── SMART ADAPTIVE IMAGE COMPRESSION (Max 1280px, WebP/JPEG, ~80-120KB) ───
 function compressCitizenImage(file) {
@@ -102,7 +165,7 @@ async function handleCitizenPhotoSelect(e) {
 
   currentCitizenPhoto = result.dataUrl;
 
-  const btnPhoto = document.getElementById('btnPhotoTrigger');
+  const choiceGrid = document.getElementById('photoChoiceGrid');
   const previewWrap = document.getElementById('photoPreviewWrap');
   const previewImg = document.getElementById('photoPreviewImg');
   const sizeBadge = document.getElementById('photoSizeBadge');
@@ -113,20 +176,26 @@ async function handleCitizenPhotoSelect(e) {
     const kbComp = Math.round(result.compressedSize / 1024);
     sizeBadge.textContent = `ขนาดรูป: ${kbComp} KB (บีบอัดลดจาก ${kbOrig} KB คมชัดสูง ประหยัดพื้นที่)`;
     previewWrap.style.display = 'block';
-    if (btnPhoto) btnPhoto.style.display = 'none';
+    if (choiceGrid) choiceGrid.style.display = 'none';
   }
 }
 
 function removeCitizenPhoto() {
   currentCitizenPhoto = null;
-  const f1 = document.getElementById('citizenPhotoFile');
-  const btnPhoto = document.getElementById('btnPhotoTrigger');
+  const fCam = document.getElementById('citizenCameraFile');
+  const fGal = document.getElementById('citizenGalleryFile');
+  const choiceGrid = document.getElementById('photoChoiceGrid');
   const pw = document.getElementById('photoPreviewWrap');
   const pi = document.getElementById('photoPreviewImg');
-  if (f1) f1.value = '';
+  if (fCam) fCam.value = '';
+  if (fGal) fGal.value = '';
   if (pw) pw.style.display = 'none';
   if (pi) pi.src = '';
-  if (btnPhoto) btnPhoto.style.display = 'flex';
+  if (choiceGrid) choiceGrid.style.display = 'grid';
+}
+
+function changeCitizenPhoto() {
+  removeCitizenPhoto();
 }
 
 // ─── GPS LOCATION PINNING ────────────────────────────────────

@@ -45,13 +45,22 @@ async function checkAuthSession() {
 function showLoginGate() {
   document.getElementById('loginGateScreen').classList.remove('hidden');
   document.getElementById('mainDashboardScreen').classList.add('hidden');
-  document.getElementById('staffTag').classList.add('hidden');
-  document.getElementById('btnLogout').classList.add('hidden');
+  const staffNav = document.getElementById('staffNavActions');
+  if (staffNav) {
+    staffNav.classList.add('hidden');
+    staffNav.style.display = 'none';
+  }
 }
 
 function showDashboard() {
   document.getElementById('loginGateScreen').classList.add('hidden');
   document.getElementById('mainDashboardScreen').classList.remove('hidden');
+
+  const staffNav = document.getElementById('staffNavActions');
+  if (staffNav) {
+    staffNav.classList.remove('hidden');
+    staffNav.style.display = 'inline-flex';
+  }
 
   const staffTag = document.getElementById('staffTag');
   const btnLogout = document.getElementById('btnLogout');
@@ -60,6 +69,25 @@ function showDashboard() {
     staffTag.classList.remove('hidden');
   }
   if (btnLogout) btnLogout.classList.remove('hidden');
+}
+
+function togglePasswordVisibility(inputId, eyeId) {
+  const inp = document.getElementById(inputId);
+  const eye = document.getElementById(eyeId);
+  if (!inp) return;
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    if (eye) {
+      eye.classList.remove('fa-eye');
+      eye.classList.add('fa-eye-slash');
+    }
+  } else {
+    inp.type = 'password';
+    if (eye) {
+      eye.classList.remove('fa-eye-slash');
+      eye.classList.add('fa-eye');
+    }
+  }
 }
 
 async function handleGateLogin(e) {

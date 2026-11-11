@@ -201,7 +201,7 @@ function openEditUserModal(id) {
   document.getElementById('userModalTitle').textContent = `แก้ไขบัญชีเจ้าหน้าที่: ${u.username}`;
   document.getElementById('userId').value = u.id;
   document.getElementById('inputUsername').value = u.username;
-  document.getElementById('inputUsername').disabled = true;
+  document.getElementById('inputUsername').disabled = (u.id === 1);
   document.getElementById('inputName').value = u.name || '';
   document.getElementById('inputRole').value = u.role || 'Officer';
   document.getElementById('inputStatus').value = u.status || 'Active';

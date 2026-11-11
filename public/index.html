@@ -20,6 +20,11 @@
           <span class="brand-sub">ประชาคมออนไลน์ ทต. แม่สาย</span>
         </div>
       </div>
+      <div class="header-nav" id="publicHeaderNav">
+        <a href="/sala/manage" class="btn-header" title="เข้าสู่ระบบสำหรับเจ้าหน้าที่เทศบาล">
+          <i class="fas fa-user-lock"></i> เข้าสู่ระบบเจ้าหน้าที่
+        </a>
+      </div>
     </div>
   </header>
   <div class="credit-bar">พัฒนาโดย กองยุทธศาสตร์ฯ by google ecosystem (V4.0.0)</div>
@@ -119,23 +124,34 @@
             </div>
 
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
-              <!-- 1. Photo upload / Camera capture (Unified Thumb-Friendly Action) -->
+              <!-- 1. Photo upload / Camera capture (Two Clear Choices: Camera vs Gallery) -->
               <div style="background: #ffffff; padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--slate-200); display: flex; flex-direction: column;">
                 <label class="form-label" style="font-size: 0.84rem; margin-bottom: 8px;">
                   <i class="fas fa-camera"></i> รูปถ่ายสภาพปัญหา (แนบได้ 1 รูป)
                 </label>
                 
-                <!-- Main Touch Trigger Button (Spacious 56px touch target) -->
-                <label class="btn-touch-action" id="btnPhotoTrigger" title="แตะเพื่อแนบรูปถ่าย">
-                  <div class="touch-action-icon photo">
-                    <i class="fas fa-camera"></i>
-                  </div>
-                  <div class="touch-action-text">
-                    <span class="touch-action-title">แนบรูปถ่ายสภาพปัญหา</span>
-                    <span class="touch-action-sub">แตะเพื่อถ่ายรูป หรือเลือกภาพจากเครื่อง</span>
-                  </div>
-                  <input type="file" id="citizenPhotoFile" accept="image/*" style="display:none;" onchange="handleCitizenPhotoSelect(event)">
-                </label>
+                <!-- Two Distinct Touch Choices: Camera vs Gallery -->
+                <div class="photo-choice-grid" id="photoChoiceGrid">
+                  <!-- Option A: Native Camera capture -->
+                  <label class="btn-touch-choice photo-choice" id="btnCameraTrigger" title="เปิดกล้องถ่ายภาพทันที">
+                    <div class="touch-action-icon photo">
+                      <i class="fas fa-camera"></i>
+                    </div>
+                    <div class="touch-action-title">ถ่ายภาพด้วยกล้อง</div>
+                    <div class="touch-action-sub">เปิดกล้องถ่ายสด</div>
+                    <input type="file" id="citizenCameraFile" accept="image/*" capture="environment" style="display:none;" onchange="handleCitizenPhotoSelect(event)">
+                  </label>
+
+                  <!-- Option B: Device / Gallery File Picker -->
+                  <label class="btn-touch-choice gallery-choice" id="btnGalleryTrigger" title="เลือกรูปภาพที่มีอยู่ในเครื่องหรือแกลเลอรี">
+                    <div class="touch-action-icon gallery" style="background: #e0f2fe; color: #0284c7;">
+                      <i class="fas fa-images"></i>
+                    </div>
+                    <div class="touch-action-title">เลือกรูปจากเครื่อง</div>
+                    <div class="touch-action-sub">อัลบั้ม / แกลเลอรี</div>
+                    <input type="file" id="citizenGalleryFile" accept="image/*" style="display:none;" onchange="handleCitizenPhotoSelect(event)">
+                  </label>
+                </div>
 
                 <!-- Photo Preview & Actions (Shown after selection) -->
                 <div id="photoPreviewWrap" style="display: none; margin-top: 10px;">
@@ -143,7 +159,7 @@
                     <img id="photoPreviewImg" src="" alt="ภาพตัวอย่าง" class="photo-preview-thumb">
                     <div id="photoSizeBadge" style="font-size: 0.75rem; color: var(--success); font-weight: 600;"></div>
                     <div class="attach-action-bar">
-                      <button type="button" class="btn-sub-action" onclick="document.getElementById('citizenPhotoFile').click()">
+                      <button type="button" class="btn-sub-action" onclick="changeCitizenPhoto()">
                         <i class="fas fa-sync-alt"></i> เปลี่ยนรูป
                       </button>
                       <button type="button" class="btn-sub-action danger" onclick="removeCitizenPhoto()">
