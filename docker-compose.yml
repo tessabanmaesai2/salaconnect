@@ -3,8 +3,8 @@ version: '3.8'
 services:
   salaconnect:
     build: .
-    container_name: salaconnect_app
-    restart: unless-stopped
+    container_name: salaconnect
+    restart: always
     ports:
       - "3405:3405"
     environment:
@@ -15,10 +15,5 @@ services:
     volumes:
       - ./data:/app/data
       - ./public/uploads:/app/public/uploads
-    networks:
-      - maesai_net
 
-networks:
-  maesai_net:
-    external: true
 
