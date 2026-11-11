@@ -592,7 +592,6 @@ function initTableResizable() {
     });
   });
 }
-}
 
 // ─── INLINE STATUS CHANGE ────────────────────────────────────
 async function changeStatusInline(id, newStatus) {
