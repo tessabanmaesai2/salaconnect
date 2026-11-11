@@ -74,8 +74,12 @@
 
       <form id="formMasterLogin" onsubmit="handleMasterLoginSubmit(event)" style="text-align: left;">
         <div class="form-group">
-          <label class="form-label">Master Key Password <span class="req">*</span></label>
-          <input type="password" id="masterKeyPasswordInput" class="v3-input" required placeholder="กรอก Master Key...">
+          <label class="form-label">ชื่อผู้ใช้งาน (Master Key Username) <span class="req">*</span></label>
+          <input type="text" id="masterKeyUsernameInput" class="v3-input" required placeholder="กรอกชื่อผู้ใช้งาน หรือ Master Key..." autocomplete="username">
+        </div>
+        <div class="form-group">
+          <label class="form-label">รหัสผ่าน (Password) <span class="req">*</span></label>
+          <input type="password" id="masterKeyPasswordInput" class="v3-input" required placeholder="กรอกรหัสผ่าน Master Password..." autocomplete="current-password">
         </div>
         <button type="submit" id="btnMasterSubmit" class="btn-v3-pill danger" style="width: 100%; margin-top: 10px;">
           <i class="fas fa-key"></i> เข้าสู่ระบบความปลอดภัย

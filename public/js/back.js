@@ -53,10 +53,12 @@ function showMasterDashboard() {
 
 async function handleMasterLoginSubmit(e) {
   e.preventDefault();
-  const masterKey = document.getElementById('masterKeyPasswordInput').value.trim();
+  const username = (document.getElementById('masterKeyUsernameInput')?.value || '').trim();
+  const password = (document.getElementById('masterKeyPasswordInput')?.value || '').trim();
   const btn = document.getElementById('btnMasterSubmit');
 
-  if (!masterKey) return alert('กรุณากรอก Master Key Password');
+  if (!username) return alert('กรุณากรอกชื่อผู้ใช้งานหรือ Master Key');
+  if (!password) return alert('กรุณากรอกรหัสผ่าน');
 
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบสิทธิ์...';
@@ -65,7 +67,7 @@ async function handleMasterLoginSubmit(e) {
     const res = await fetch('/api/auth/master-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ masterKey })
+      body: JSON.stringify({ username, password, masterKey: password })
     });
     const data = await res.json();
     if (data.success && data.token) {
@@ -77,7 +79,7 @@ async function handleMasterLoginSubmit(e) {
       await loadSecurityLogs();
       await loadBannedIps();
     } else {
-      alert(data.error || 'Master Key ไม่ถูกต้อง');
+      alert(data.error || 'ชื่อผู้ใช้หรือรหัสผ่าน Master Key ไม่ถูกต้อง');
     }
   } catch (err) {
     alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');

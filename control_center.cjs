@@ -411,7 +411,7 @@ const server = http.createServer(async (req, res) => {
                 });
             }
 
-            // POST /api/auth/master-login (Strict: Single Master Key Input, DEC-026 Protected)
+            // POST /api/auth/master-login (Strict: Master Key Username & Password, DEC-026 Protected)
             if (apiPath === '/auth/master-login' && req.method === 'POST') {
                 const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1').replace(/^.*:/, '');
                 const lockInfo = failedAttempts.get(clientIp);
@@ -422,10 +422,22 @@ const server = http.createServer(async (req, res) => {
                 }
 
                 const body = await parseBody(req);
-                const { masterKey } = body;
-                if (!masterKey) return sendError(res, 400, 'กรุณาระบุ Master Key Password');
+                const username = (body.username || '').trim();
+                const password = (body.password || body.masterKey || '').trim();
 
-                if (masterKey === MASTER_PASSWORD || masterKey === MASTER_KEY) {
+                if (!password && !username) {
+                    return sendError(res, 400, 'กรุณาระบุชื่อผู้ใช้งานและรหัสผ่าน Master Key');
+                }
+
+                // Verify credentials against Master Key & Master Password
+                const isMasterKeyMatch = (
+                    (username && (username === MASTER_KEY || username.toLowerCase() === 'thedatazero' || username.toLowerCase() === MASTER_KEY.toLowerCase())) &&
+                    (password === MASTER_PASSWORD || password === MASTER_KEY)
+                ) || (
+                    !username && (password === MASTER_PASSWORD || password === MASTER_KEY)
+                );
+
+                if (isMasterKeyMatch) {
                     failedAttempts.delete(clientIp);
                     const token = generateToken();
                     state.sessions.set(token, {
@@ -453,12 +465,12 @@ const server = http.createServer(async (req, res) => {
                     att.count++;
                     if (att.count >= 5) {
                         att.lockedUntil = Date.now() + (15 * 60 * 1000); // 15 min lock
-                        logSecurity('ANTI_BRUTE_FORCE_TRIGGERED', 'masterkey', req, `ใส่ Master Key ผิด 5 ครั้ง ถูกระงับ 15 นาที`, 'CRITICAL');
+                        logSecurity('ANTI_BRUTE_FORCE_TRIGGERED', username || 'masterkey', req, `ใส่ Master Key ผิด 5 ครั้ง ถูกระงับ 15 นาที`, 'CRITICAL');
                     } else {
-                        logSecurity('MASTER_LOGIN_FAILED', 'masterkey', req, `ใส่ Master Key ไม่ถูกต้อง (ครั้งที่ ${att.count}/5)`, 'WARN');
+                        logSecurity('MASTER_LOGIN_FAILED', username || 'masterkey', req, `ใส่ Master Key ไม่ถูกต้อง (ครั้งที่ ${att.count}/5)`, 'WARN');
                     }
                     failedAttempts.set(clientIp, att);
-                    return sendError(res, 401, 'Master Key Password ไม่ถูกต้อง');
+                    return sendError(res, 401, 'ชื่อผู้ใช้งานหรือรหัสผ่าน Master Key ไม่ถูกต้อง');
                 }
             }
 
@@ -495,7 +507,9 @@ const server = http.createServer(async (req, res) => {
                 state.settings.communities.forEach(c => stats.byCommunity[c] = 0);
 
                 state.proposals.forEach(p => {
-                    const s = p.status || 'รอดำเนินการ';
+                    let s = p.status || 'เข้าระบบแล้ว';
+                    if (s === 'รอดำเนินการ') s = 'เข้าระบบแล้ว';
+                    if (s === 'บรรจุในแผนชุมชน') s = 'บรรจุในแผน';
                     stats.byStatus[s] = (stats.byStatus[s] || 0) + 1;
 
                     const c = p.community || 'ไม่ระบุ';
@@ -503,10 +517,6 @@ const server = http.createServer(async (req, res) => {
 
                     const cat = p.category || 'ไม่ระบุ';
                     stats.byCategory[cat] = (stats.byCategory[cat] || 0) + 1;
-
-                    if (typeof p.budget === 'number' && !isNaN(p.budget)) {
-                        stats.totalBudget += p.budget;
-                    }
                 });
 
                 return sendJson(res, 200, { success: true, stats: stats });
@@ -596,12 +606,12 @@ const server = http.createServer(async (req, res) => {
                     problem: body.problem || '',
                     solution: body.solution || '',
                     location: body.location || '',
-                    budget: body.budget ? parseFloat(body.budget) : 0,
                     department: body.department || 'กองช่าง',
-                    status: body.status || 'รอดำเนินการ',
+                    status: (body.status === 'รอดำเนินการ') ? 'เข้าระบบแล้ว' : ((body.status === 'บรรจุในแผนชุมชน') ? 'บรรจุในแผน' : (body.status || 'เข้าระบบแล้ว')),
+                    reject_reason: body.reject_reason || body.notes || '',
                     pdpa_consent: body.pdpa_consent === true || body.pdpa_consent === 'true',
                     pdpa_timestamp: now.toISOString(),
-                    notes: body.notes || '',
+                    notes: body.notes || body.reject_reason || '',
                     updatedAt: now.toISOString()
                 };
 
@@ -626,6 +636,12 @@ const server = http.createServer(async (req, res) => {
                 const body = await parseBody(req);
                 const existing = state.proposals[index];
 
+                let updatedStatus = body.status !== undefined ? body.status : existing.status;
+                if (updatedStatus === 'รอดำเนินการ') updatedStatus = 'เข้าระบบแล้ว';
+                if (updatedStatus === 'บรรจุในแผนชุมชน') updatedStatus = 'บรรจุในแผน';
+
+                const updatedRejectReason = body.reject_reason !== undefined ? body.reject_reason : (body.notes !== undefined ? body.notes : (existing.reject_reason || ''));
+
                 state.proposals[index] = {
                     ...existing,
                     community: body.community !== undefined ? body.community : existing.community,
@@ -637,10 +653,10 @@ const server = http.createServer(async (req, res) => {
                     problem: body.problem !== undefined ? body.problem : existing.problem,
                     solution: body.solution !== undefined ? body.solution : existing.solution,
                     location: body.location !== undefined ? body.location : existing.location,
-                    budget: body.budget !== undefined ? parseFloat(body.budget) || 0 : existing.budget,
                     department: body.department !== undefined ? body.department : existing.department,
-                    status: body.status !== undefined ? body.status : existing.status,
-                    notes: body.notes !== undefined ? body.notes : existing.notes,
+                    status: updatedStatus,
+                    reject_reason: updatedRejectReason,
+                    notes: body.notes !== undefined ? body.notes : updatedRejectReason,
                     updatedAt: new Date().toISOString()
                 };
 

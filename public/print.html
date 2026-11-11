@@ -68,6 +68,13 @@
   <div class="print-control-bar no-print" style="padding: 14px 24px;">
     <div style="max-width: 1200px; margin: 0 auto;">
       <div class="filter-grid-bar">
+        <div class="filter-item" style="grid-column: 1 / -1; margin-bottom: 6px;">
+          <label style="color: var(--primary-dark); font-weight: 700;">
+            <i class="fas fa-edit"></i> หัวข้อรายงาน (ผู้ใช้สามารถแก้ไขข้อความหัวข้อได้อิสระ หรือคลิกพิมพ์แก้บนหน้ากระดาษโดยตรง):
+          </label>
+          <input type="text" id="customReportTitleInput" value="แบบสรุปข้อเสนอโครงการและปัญหาความต้องการของประชาชน" oninput="onCustomTitleChange(this.value)" style="font-weight: 600; color: #1e293b; padding: 8px 12px; font-size: 0.95rem;">
+        </div>
+
         <div class="filter-item" style="grid-column: span 1;">
           <label>รูปแบบรายงาน</label>
           <select id="reportTemplateSelect" onchange="renderSelectedTemplate()">

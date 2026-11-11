@@ -338,18 +338,26 @@ function filterHistory() {
       <div style="font-size: 0.85rem; color: var(--slate-600); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
         <b>แนวทางแก้ไข:</b> ${escapeHtml(p.solution || '')}
       </div>
+      ${(p.status === 'ไม่สามารถดำเนินการได้' && (p.reject_reason || p.notes)) ? `
+        <div style="font-size: 0.8rem; color: #9f1239; background: #fff1f2; border: 1px solid #fecdd3; padding: 6px 10px; border-radius: var(--radius-sm); margin-top: 8px; line-height: 1.4;">
+          <b>เหตุผลที่ไม่สามารถดำเนินการได้:</b> ${escapeHtml(p.reject_reason || p.notes)}
+        </div>
+      ` : ''}
     </div>
   `).join('');
 }
 
 function getStatusBadge(status) {
-  status = status || 'รอดำเนินการ';
+  let norm = status || 'เข้าระบบแล้ว';
+  if (norm === 'รอดำเนินการ') norm = 'เข้าระบบแล้ว';
+  if (norm === 'บรรจุในแผนชุมชน') norm = 'บรรจุในแผน';
+
   let cls = 'badge-pending';
-  if (status.includes('พิจารณา')) cls = 'badge-review';
-  else if (status.includes('บรรจุ') || status.includes('แผน')) cls = 'badge-inplan';
-  else if (status.includes('สำเร็จ') || status.includes('แล้วเสร็จ')) cls = 'badge-completed';
-  else if (status.includes('ไม่')) cls = 'badge-rejected';
-  return `<span class="badge-status ${cls}">${escapeHtml(status)}</span>`;
+  if (norm.includes('พิจารณา')) cls = 'badge-review';
+  else if (norm.includes('บรรจุ') || norm.includes('แผน')) cls = 'badge-inplan';
+  else if (norm.includes('สำเร็จ') || norm.includes('แล้วเสร็จ')) cls = 'badge-completed';
+  else if (norm.includes('ไม่')) cls = 'badge-rejected';
+  return `<span class="badge-status ${cls}">${escapeHtml(norm)}</span>`;
 }
 
 function openDetailModal(id) {
@@ -372,6 +380,14 @@ function openDetailModal(id) {
       <div style="font-weight: 700; color: var(--success); margin-bottom: 4px;">แนวทางแก้ไขหรือโครงการที่ต้องการ:</div>
       <div>${escapeHtml(p.solution || '')}</div>
     </div>
+    ${(p.status === 'ไม่สามารถดำเนินการได้' || p.reject_reason) ? `
+      <div style="margin-bottom: 12px; background: #fff1f2; border: 1.5px solid #fecdd3; padding: 12px; border-radius: var(--radius-md);">
+        <div style="font-weight: 700; color: #9f1239; margin-bottom: 4px;">
+          <i class="fas fa-info-circle"></i> คำชี้แจงจากเจ้าหน้าที่ / เหตุผลที่ไม่สามารถดำเนินการได้:
+        </div>
+        <div style="color: #881337; line-height: 1.5;">${escapeHtml(p.reject_reason || p.notes || 'ส่งต่อประสานงานหน่วยงานภายนอก หรืออยู่นอกเหนืออำนาจหน้าที่ของเทศบาล')}</div>
+      </div>
+    ` : ''}
     ${currentUser ? `
       <div style="border-top: 1px solid var(--slate-200); padding-top: 10px; margin-top: 10px; font-size: 0.85rem; color: var(--slate-600);">
         <div><b>ผู้เสนอ:</b> ${escapeHtml(p.prefix || '')} ${escapeHtml(p.name || '')} (อายุ ${p.age || '-'} ปี)</div>

@@ -158,7 +158,10 @@ function updateKpiCards() {
   let pending = 0, review = 0, inPlan = 0, completed = 0, rejected = 0;
 
   allProposals.forEach(p => {
-    const s = p.status || 'รอดำเนินการ';
+    let s = p.status || 'เข้าระบบแล้ว';
+    if (s === 'รอดำเนินการ') s = 'เข้าระบบแล้ว';
+    if (s === 'บรรจุในแผนชุมชน') s = 'บรรจุในแผน';
+
     if (s.includes('สำเร็จ') || s.includes('แล้วเสร็จ')) completed++;
     else if (s.includes('บรรจุ') || s.includes('แผน')) inPlan++;
     else if (s.includes('พิจารณา')) review++;
@@ -186,7 +189,7 @@ function setFilterStatus(status) {
     document.getElementById('manageStatusFilter').value = 'อยู่ระหว่างพิจารณา';
   } else if (status.includes('บรรจุ') || status.includes('แผน')) {
     document.getElementById('kpiInPlan').classList.add('active-filter');
-    document.getElementById('manageStatusFilter').value = 'บรรจุในแผนชุมชน';
+    document.getElementById('manageStatusFilter').value = 'บรรจุในแผน';
   } else if (status.includes('แล้วเสร็จ') || status.includes('สำเร็จ')) {
     document.getElementById('kpiCompleted').classList.add('active-filter');
     document.getElementById('manageStatusFilter').value = 'ดำเนินการแล้วเสร็จ';
@@ -195,7 +198,7 @@ function setFilterStatus(status) {
     document.getElementById('manageStatusFilter').value = 'ไม่สามารถดำเนินการได้';
   } else {
     document.getElementById('kpiPending').classList.add('active-filter');
-    document.getElementById('manageStatusFilter').value = 'รอดำเนินการ';
+    document.getElementById('manageStatusFilter').value = 'เข้าระบบแล้ว';
   }
 
   filterTable();
@@ -240,8 +243,18 @@ function filterTable() {
     // Community filter
     if (commFilter !== 'all' && p.community !== commFilter) return false;
 
-    // Status filter
-    if (statusFilter !== 'all' && p.status !== statusFilter) return false;
+    // Status filter (with backward compatibility normalization)
+    if (statusFilter !== 'all') {
+      let pNorm = p.status || 'เข้าระบบแล้ว';
+      if (pNorm === 'รอดำเนินการ') pNorm = 'เข้าระบบแล้ว';
+      if (pNorm === 'บรรจุในแผนชุมชน') pNorm = 'บรรจุในแผน';
+
+      let fNorm = statusFilter;
+      if (fNorm === 'รอดำเนินการ') fNorm = 'เข้าระบบแล้ว';
+      if (fNorm === 'บรรจุในแผนชุมชน') fNorm = 'บรรจุในแผน';
+
+      if (pNorm !== fNorm && p.status !== statusFilter) return false;
+    }
 
     // Date range
     if (dateFrom && p.timestamp && p.timestamp.slice(0, 10) < dateFrom) return false;
@@ -256,7 +269,8 @@ function filterTable() {
         (p.problem && p.problem.toLowerCase().includes(query)) ||
         (p.solution && p.solution.toLowerCase().includes(query)) ||
         (p.location && p.location.toLowerCase().includes(query)) ||
-        (p.phone && p.phone.includes(query));
+        (p.phone && p.phone.includes(query)) ||
+        (p.reject_reason && p.reject_reason.toLowerCase().includes(query));
       if (!match) return false;
     }
 
@@ -274,7 +288,14 @@ function renderTable(list) {
     return;
   }
 
-  tbody.innerHTML = list.map(p => `
+  tbody.innerHTML = list.map(p => {
+    let normStatus = p.status || 'เข้าระบบแล้ว';
+    if (normStatus === 'รอดำเนินการ') normStatus = 'เข้าระบบแล้ว';
+    if (normStatus === 'บรรจุในแผนชุมชน') normStatus = 'บรรจุในแผน';
+
+    const reasonText = p.reject_reason || p.notes || '';
+
+    return `
     <tr>
       <td>
         <strong style="color: var(--primary); font-family: var(--font-heading);">${escapeHtml(p.code || 'PRJ')}</strong>
@@ -302,12 +323,17 @@ function renderTable(list) {
       </td>
       <td style="text-align: center;">
         <select class="select-status-inline" onchange="changeStatusInline(${p.id}, this.value)">
-          <option value="รอดำเนินการ" ${p.status === 'รอดำเนินการ' ? 'selected' : ''}>รอดำเนินการ</option>
-          <option value="อยู่ระหว่างพิจารณา" ${p.status === 'อยู่ระหว่างพิจารณา' ? 'selected' : ''}>อยู่ระหว่างพิจารณา</option>
-          <option value="บรรจุในแผนชุมชน" ${p.status === 'บรรจุในแผนชุมชน' ? 'selected' : ''}>บรรจุในแผนชุมชน</option>
-          <option value="ดำเนินการแล้วเสร็จ" ${p.status === 'ดำเนินการแล้วเสร็จ' ? 'selected' : ''}>ดำเนินการแล้วเสร็จ</option>
-          <option value="ไม่สามารถดำเนินการได้" ${p.status === 'ไม่สามารถดำเนินการได้' ? 'selected' : ''}>ไม่สามารถดำเนินการได้</option>
+          <option value="เข้าระบบแล้ว" ${normStatus === 'เข้าระบบแล้ว' ? 'selected' : ''}>เข้าระบบแล้ว</option>
+          <option value="อยู่ระหว่างพิจารณา" ${normStatus === 'อยู่ระหว่างพิจารณา' ? 'selected' : ''}>อยู่ระหว่างพิจารณา</option>
+          <option value="บรรจุในแผน" ${normStatus === 'บรรจุในแผน' ? 'selected' : ''}>บรรจุในแผน</option>
+          <option value="ดำเนินการแล้วเสร็จ" ${normStatus === 'ดำเนินการแล้วเสร็จ' ? 'selected' : ''}>ดำเนินการแล้วเสร็จ</option>
+          <option value="ไม่สามารถดำเนินการได้" ${normStatus === 'ไม่สามารถดำเนินการได้' ? 'selected' : ''}>ไม่สามารถดำเนินการได้</option>
         </select>
+        ${normStatus === 'ไม่สามารถดำเนินการได้' && reasonText ? `
+          <div style="font-size: 0.72rem; color: #9f1239; margin-top: 4px; line-height: 1.3; background: #fff1f2; padding: 2px 6px; border-radius: 4px; border: 1px solid #fecdd3; text-align: left;" title="${escapeHtml(reasonText)}">
+            <b>เหตุผล:</b> ${escapeHtml(reasonText.length > 25 ? reasonText.slice(0, 25) + '...' : reasonText)}
+          </div>
+        ` : ''}
       </td>
       <td style="text-align: center;">
         <div style="display: flex; gap: 4px; justify-content: center;">
@@ -323,12 +349,26 @@ function renderTable(list) {
         </div>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 // ─── INLINE STATUS CHANGE ────────────────────────────────────
 async function changeStatusInline(id, newStatus) {
   const token = localStorage.getItem('sala_token');
+  const match = allProposals.find(p => p.id === id);
+  let rejectReason = match ? (match.reject_reason || match.notes || '') : '';
+
+  if (newStatus === 'ไม่สามารถดำเนินการได้') {
+    const inputReason = prompt('โปรดระบุเหตุผลที่ไม่สามารถดำเนินการได้ (สำหรับให้ประชาชนผู้เสนอเรื่องตรวจสอบได้ เช่น "ส่งต่อหน่วยงานภายนอก (แขวงทางหลวงชนบท / การไฟฟ้า)", "อยู่นอกเขตพื้นที่รับผิดชอบ"):', rejectReason);
+    if (inputReason === null) {
+      // User cancelled prompt
+      renderTable(filteredProposals);
+      return;
+    }
+    rejectReason = inputReason.trim();
+  }
+
   try {
     const res = await fetch(`/api/proposals/${id}`, {
       method: 'PUT',
@@ -336,13 +376,21 @@ async function changeStatusInline(id, newStatus) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({ status: newStatus })
+      body: JSON.stringify({
+        status: newStatus,
+        reject_reason: rejectReason,
+        notes: rejectReason
+      })
     });
     const data = await res.json();
     if (data.success) {
-      const match = allProposals.find(p => p.id === id);
-      if (match) match.status = newStatus;
+      if (match) {
+        match.status = newStatus;
+        match.reject_reason = rejectReason;
+        match.notes = rejectReason;
+      }
       updateKpiCards();
+      renderTable(filteredProposals);
     } else {
       alert(data.error || 'ไม่สามารถเปลี่ยนสถานะได้');
       loadProposals();
@@ -353,10 +401,20 @@ async function changeStatusInline(id, newStatus) {
 }
 
 // ─── ADD / EDIT MODAL ────────────────────────────────────────
+function handleModalStatusChange(val) {
+  const group = document.getElementById('groupRejectReason');
+  if (group) {
+    group.style.display = (val === 'ไม่สามารถดำเนินการได้') ? 'block' : 'none';
+  }
+}
+
 function openAddModal() {
   document.getElementById('modalTitle').textContent = 'เพิ่มข้อเสนอโครงการใหม่ (เจ้าหน้าที่)';
   document.getElementById('editId').value = '';
   document.getElementById('formEdit').reset();
+  document.getElementById('editStatus').value = 'เข้าระบบแล้ว';
+  document.getElementById('editRejectReason').value = '';
+  handleModalStatusChange('เข้าระบบแล้ว');
   document.getElementById('editModal').classList.add('active');
 }
 
@@ -374,7 +432,14 @@ function openEditModal(id) {
   document.getElementById('editProblem').value = p.problem || '';
   document.getElementById('editSolution').value = p.solution || '';
   document.getElementById('editLocation').value = p.location || '';
-  document.getElementById('editStatus').value = p.status || 'รอดำเนินการ';
+
+  let normStatus = p.status || 'เข้าระบบแล้ว';
+  if (normStatus === 'รอดำเนินการ') normStatus = 'เข้าระบบแล้ว';
+  if (normStatus === 'บรรจุในแผนชุมชน') normStatus = 'บรรจุในแผน';
+
+  document.getElementById('editStatus').value = normStatus;
+  document.getElementById('editRejectReason').value = p.reject_reason || p.notes || '';
+  handleModalStatusChange(normStatus);
 
   document.getElementById('editModal').classList.add('active');
 }
@@ -389,6 +454,9 @@ async function saveProposal(e) {
   const id = document.getElementById('editId').value;
   const isEdit = Boolean(id);
 
+  const statusVal = document.getElementById('editStatus').value;
+  const rejectReasonVal = document.getElementById('editRejectReason')?.value.trim() || '';
+
   const payload = {
     community: document.getElementById('editCommunity').value,
     prefix: document.getElementById('editPrefix').value,
@@ -398,7 +466,9 @@ async function saveProposal(e) {
     problem: document.getElementById('editProblem').value.trim(),
     solution: document.getElementById('editSolution').value.trim(),
     location: document.getElementById('editLocation').value.trim(),
-    status: document.getElementById('editStatus').value
+    status: statusVal,
+    reject_reason: rejectReasonVal,
+    notes: rejectReasonVal
   };
 
   const btn = document.getElementById('btnSaveProposal');
@@ -428,6 +498,8 @@ async function saveProposal(e) {
     alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
   } finally {
     btn.disabled = false;
+  }
+}
   }
 }
 
@@ -469,7 +541,8 @@ function exportToExcel() {
     'สภาพปัญหาและสาเหตุ': p.problem || '',
     'แนวทางแก้ไขหรือโครงการที่ต้องการ': p.solution || '',
     'สถานที่ดำเนินการ': p.location || '',
-    'สถานะโครงการ': p.status || 'รอดำเนินการ'
+    'สถานะโครงการ': (p.status === 'รอดำเนินการ') ? 'เข้าระบบแล้ว' : ((p.status === 'บรรจุในแผนชุมชน') ? 'บรรจุในแผน' : (p.status || 'เข้าระบบแล้ว')),
+    'เหตุผลกรณีไม่สามารถดำเนินการได้': p.reject_reason || p.notes || ''
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(exportData);

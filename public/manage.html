@@ -85,9 +85,9 @@
         </div>
         <i class="fas fa-folder-open" style="font-size: 24px; color: var(--primary);"></i>
       </div>
-      <div class="kpi-card" id="kpiPending" onclick="setFilterStatus('รอดำเนินการ')">
+      <div class="kpi-card" id="kpiPending" onclick="setFilterStatus('เข้าระบบแล้ว')">
         <div>
-          <div class="kpi-title">รอดำเนินการ</div>
+          <div class="kpi-title">เข้าระบบแล้ว</div>
           <div class="kpi-val" id="countPending" style="color: var(--warning);">0</div>
         </div>
         <i class="fas fa-clock" style="font-size: 24px; color: var(--warning);"></i>
@@ -99,9 +99,9 @@
         </div>
         <i class="fas fa-search" style="font-size: 24px; color: var(--info);"></i>
       </div>
-      <div class="kpi-card" id="kpiInPlan" onclick="setFilterStatus('บรรจุในแผนชุมชน')">
+      <div class="kpi-card" id="kpiInPlan" onclick="setFilterStatus('บรรจุในแผน')">
         <div>
-          <div class="kpi-title">บรรจุในแผนชุมชน</div>
+          <div class="kpi-title">บรรจุในแผน</div>
           <div class="kpi-val" id="countInPlan" style="color: var(--primary-light);">0</div>
         </div>
         <i class="fas fa-file-signature" style="font-size: 24px; color: var(--primary-light);"></i>
@@ -151,9 +151,9 @@
 
           <select id="manageStatusFilter" class="v3-input" style="width: 155px; padding: 6px 10px; font-size: 0.85rem;" onchange="filterTable()">
             <option value="all">ทุกสถานะ</option>
-            <option value="รอดำเนินการ">รอดำเนินการ</option>
+            <option value="เข้าระบบแล้ว">เข้าระบบแล้ว</option>
             <option value="อยู่ระหว่างพิจารณา">อยู่ระหว่างพิจารณา</option>
-            <option value="บรรจุในแผนชุมชน">บรรจุในแผนชุมชน</option>
+            <option value="บรรจุในแผน">บรรจุในแผน</option>
             <option value="ดำเนินการแล้วเสร็จ">ดำเนินการแล้วเสร็จ</option>
             <option value="ไม่สามารถดำเนินการได้">ไม่สามารถดำเนินการได้</option>
           </select>
@@ -267,13 +267,20 @@
 
         <div class="form-group" style="background: #f5f3ff; padding: 12px; border-radius: var(--radius-md); border: 1.5px solid var(--primary-light);">
           <label class="form-label" style="color: var(--primary-dark); font-weight: 700;">สถานะโครงการ</label>
-          <select id="editStatus" class="v3-input" style="font-weight: 600; border-color: var(--primary);">
-            <option value="รอดำเนินการ">รอดำเนินการ</option>
+          <select id="editStatus" class="v3-input" style="font-weight: 600; border-color: var(--primary);" onchange="handleModalStatusChange(this.value)">
+            <option value="เข้าระบบแล้ว">เข้าระบบแล้ว</option>
             <option value="อยู่ระหว่างพิจารณา">อยู่ระหว่างพิจารณา</option>
-            <option value="บรรจุในแผนชุมชน">บรรจุในแผนชุมชน</option>
+            <option value="บรรจุในแผน">บรรจุในแผน</option>
             <option value="ดำเนินการแล้วเสร็จ">ดำเนินการแล้วเสร็จ</option>
             <option value="ไม่สามารถดำเนินการได้">ไม่สามารถดำเนินการได้</option>
           </select>
+        </div>
+
+        <div class="form-group" id="groupRejectReason" style="display: none; background: #fff1f2; padding: 12px; border-radius: var(--radius-md); border: 1.5px solid #fecdd3;">
+          <label class="form-label" style="color: #9f1239; font-weight: 700;">
+            <i class="fas fa-exclamation-circle"></i> เหตุผลที่ไม่สามารถดำเนินการได้ (สำหรับให้ประชาชนตรวจสอบได้) <span class="req">*</span>
+          </label>
+          <textarea id="editRejectReason" class="v3-input" rows="2" placeholder="ระบุเหตุผล เช่น ส่งต่อหน่วยงานภายนอก (แขวงทางหลวงชนบท / การไฟฟ้า), อยู่นอกเหนืออำนาจหน้าที่ของเทศบาล ฯลฯ"></textarea>
         </div>
 
         <div style="display: flex; gap: 10px; margin-top: 20px;">
