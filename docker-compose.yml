@@ -6,7 +6,7 @@ services:
     container_name: salaconnect_app
     restart: unless-stopped
     ports:
-      - "127.0.0.1:3405:3405"
+      - "3405:3405"
     environment:
       - PORT=3405
       - NODE_ENV=production
