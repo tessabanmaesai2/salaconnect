@@ -130,28 +130,18 @@
                   <i class="fas fa-camera"></i> รูปถ่ายสภาพปัญหา (แนบได้ 1 รูป)
                 </label>
                 
-                <!-- Two Distinct Touch Choices: Camera vs Gallery -->
-                <div class="photo-choice-grid" id="photoChoiceGrid">
-                  <!-- Option A: Native Camera capture -->
-                  <label class="btn-touch-choice photo-choice" id="btnCameraTrigger" title="เปิดกล้องถ่ายภาพทันที">
-                    <div class="touch-action-icon photo">
-                      <i class="fas fa-camera"></i>
-                    </div>
-                    <div class="touch-action-title">ถ่ายภาพด้วยกล้อง</div>
-                    <div class="touch-action-sub">เปิดกล้องถ่ายสด</div>
-                    <input type="file" id="citizenCameraFile" accept="image/*" capture="environment" style="display:none;" onchange="handleCitizenPhotoSelect(event)">
-                  </label>
-
-                  <!-- Option B: Device / Gallery File Picker -->
-                  <label class="btn-touch-choice gallery-choice" id="btnGalleryTrigger" title="เลือกรูปภาพที่มีอยู่ในเครื่องหรือแกลเลอรี">
-                    <div class="touch-action-icon gallery" style="background: #e0f2fe; color: #0284c7;">
-                      <i class="fas fa-images"></i>
-                    </div>
-                    <div class="touch-action-title">เลือกรูปจากเครื่อง</div>
-                    <div class="touch-action-sub">อัลบั้ม / แกลเลอรี</div>
-                    <input type="file" id="citizenGalleryFile" accept="image/*" style="display:none;" onchange="handleCitizenPhotoSelect(event)">
-                  </label>
-                </div>
+                <!-- Main Touch Trigger Button (Spacious 56px touch target) -->
+                <button type="button" class="btn-touch-action" id="btnPhotoTrigger" onclick="openPhotoChoiceModal()" title="แตะเพื่อเลือกวิธีแนบรูปถ่าย">
+                  <div class="touch-action-icon photo">
+                    <i class="fas fa-camera"></i>
+                  </div>
+                  <div class="touch-action-text">
+                    <span class="touch-action-title">แนบรูปถ่ายสภาพปัญหา</span>
+                    <span class="touch-action-sub">แตะเพื่อเลือก: ถ่ายจากกล้อง หรือ เลือกรูปจากเครื่อง</span>
+                  </div>
+                </button>
+                <input type="file" id="citizenCameraFile" accept="image/*" capture="environment" style="display:none;" onchange="handleCitizenPhotoSelect(event)">
+                <input type="file" id="citizenGalleryFile" accept="image/*" style="display:none;" onchange="handleCitizenPhotoSelect(event)">
 
                 <!-- Photo Preview & Actions (Shown after selection) -->
                 <div id="photoPreviewWrap" style="display: none; margin-top: 10px;">
@@ -291,6 +281,45 @@
       <div style="margin-top: 20px; text-align: right;">
         <button type="button" class="btn-v3-pill secondary" onclick="closeDetailModal()">ปิดหน้าต่าง</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 📸 Photo Attachment Choice Modal (Large Thumb-Friendly Popup) -->
+  <div class="modal-overlay" id="photoChoiceModal" onclick="closePhotoChoiceModal(event)">
+    <div class="modal-card" style="max-width: 420px; text-align: center; padding: 24px;" onclick="event.stopPropagation()">
+      <div style="width: 56px; height: 56px; border-radius: 50%; background: #f3e8ff; color: var(--primary); display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 12px;">
+        <i class="fas fa-camera"></i>
+      </div>
+      <h3 style="font-family: var(--font-heading); color: var(--primary-dark); font-size: 1.2rem; margin-bottom: 6px;">เลือกวิธีแนบรูปถ่าย</h3>
+      <p style="font-size: 0.85rem; color: var(--slate-500); margin-bottom: 20px;">แตะเลือกถ่ายภาพสภาพปัญหาใหม่ หรือเลือกรูปที่มีอยู่ในเครื่อง</p>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+        <!-- Option 1: Live Camera -->
+        <button type="button" class="btn-popup-choice" onclick="triggerCameraInput()">
+          <div class="popup-choice-icon" style="background: #f3e8ff; color: var(--primary);">
+            <i class="fas fa-camera"></i>
+          </div>
+          <div class="popup-choice-text">
+            <span class="popup-choice-title">ถ่ายภาพด้วยกล้อง</span>
+            <span class="popup-choice-sub">เปิดกล้องถ่ายสดทันที</span>
+          </div>
+          <i class="fas fa-chevron-right" style="color: var(--slate-300); font-size: 1.1rem;"></i>
+        </button>
+
+        <!-- Option 2: Gallery / Files -->
+        <button type="button" class="btn-popup-choice" onclick="triggerGalleryInput()">
+          <div class="popup-choice-icon" style="background: #e0f2fe; color: #0284c7;">
+            <i class="fas fa-images"></i>
+          </div>
+          <div class="popup-choice-text">
+            <span class="popup-choice-title">เลือกรูปจากเครื่อง</span>
+            <span class="popup-choice-sub">อัลบั้มภาพ / แกลเลอรีในเครื่อง</span>
+          </div>
+          <i class="fas fa-chevron-right" style="color: var(--slate-300); font-size: 1.1rem;"></i>
+        </button>
+      </div>
+
+      <button type="button" class="btn-v3-pill secondary" style="width: 100%;" onclick="closePhotoChoiceModal()">ยกเลิก</button>
     </div>
   </div>
 

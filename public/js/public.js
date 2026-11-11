@@ -147,6 +147,32 @@ function compressCitizenImage(file) {
   });
 }
 
+// ─── PHOTO ATTACHMENT MODAL & TRIGGERS ───────────────────────
+function openPhotoChoiceModal() {
+  const m = document.getElementById('photoChoiceModal');
+  if (m) m.classList.add('active');
+}
+
+function closePhotoChoiceModal(e) {
+  if (e && e.target && e.target.closest && e.target.closest('.modal-card')) return;
+  const m = document.getElementById('photoChoiceModal');
+  if (m) m.classList.remove('active');
+}
+
+function triggerCameraInput() {
+  const m = document.getElementById('photoChoiceModal');
+  if (m) m.classList.remove('active');
+  const inp = document.getElementById('citizenCameraFile');
+  if (inp) inp.click();
+}
+
+function triggerGalleryInput() {
+  const m = document.getElementById('photoChoiceModal');
+  if (m) m.classList.remove('active');
+  const inp = document.getElementById('citizenGalleryFile');
+  if (inp) inp.click();
+}
+
 async function handleCitizenPhotoSelect(e) {
   const files = e.target.files;
   if (!files || files.length === 0) return;
@@ -165,7 +191,7 @@ async function handleCitizenPhotoSelect(e) {
 
   currentCitizenPhoto = result.dataUrl;
 
-  const choiceGrid = document.getElementById('photoChoiceGrid');
+  const btnPhoto = document.getElementById('btnPhotoTrigger');
   const previewWrap = document.getElementById('photoPreviewWrap');
   const previewImg = document.getElementById('photoPreviewImg');
   const sizeBadge = document.getElementById('photoSizeBadge');
@@ -176,7 +202,7 @@ async function handleCitizenPhotoSelect(e) {
     const kbComp = Math.round(result.compressedSize / 1024);
     sizeBadge.textContent = `ขนาดรูป: ${kbComp} KB (บีบอัดลดจาก ${kbOrig} KB คมชัดสูง ประหยัดพื้นที่)`;
     previewWrap.style.display = 'block';
-    if (choiceGrid) choiceGrid.style.display = 'none';
+    if (btnPhoto) btnPhoto.style.display = 'none';
   }
 }
 
@@ -184,18 +210,19 @@ function removeCitizenPhoto() {
   currentCitizenPhoto = null;
   const fCam = document.getElementById('citizenCameraFile');
   const fGal = document.getElementById('citizenGalleryFile');
-  const choiceGrid = document.getElementById('photoChoiceGrid');
+  const btnPhoto = document.getElementById('btnPhotoTrigger');
   const pw = document.getElementById('photoPreviewWrap');
   const pi = document.getElementById('photoPreviewImg');
   if (fCam) fCam.value = '';
   if (fGal) fGal.value = '';
   if (pw) pw.style.display = 'none';
   if (pi) pi.src = '';
-  if (choiceGrid) choiceGrid.style.display = 'grid';
+  if (btnPhoto) btnPhoto.style.display = 'flex';
 }
 
 function changeCitizenPhoto() {
   removeCitizenPhoto();
+  openPhotoChoiceModal();
 }
 
 // ─── GPS LOCATION PINNING ────────────────────────────────────
