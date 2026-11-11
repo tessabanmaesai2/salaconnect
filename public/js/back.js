@@ -153,7 +153,7 @@ async function handleMasterLoginSubmit(e) {
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบสิทธิ์...';
 
   try {
-    const res = await fetch(`${API_BASE}/auth/master-login', {
+    const res = await fetch(API_BASE + '/auth/master-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password, masterKey: password })
@@ -184,7 +184,7 @@ async function handleMasterLogout() {
   const token = localStorage.getItem('sala_token');
   if (token) {
     try {
-      await fetch(`${API_BASE}/auth/logout', {
+      await fetch(API_BASE + '/auth/logout', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -223,7 +223,7 @@ async function loadUsers() {
   const token = localStorage.getItem('sala_token');
   const tbody = document.getElementById('userTableBody');
   try {
-    const res = await fetch(`${API_BASE}/users', {
+    const res = await fetch(API_BASE + '/users', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
@@ -392,7 +392,7 @@ async function loadSecurityLogs() {
   const token = localStorage.getItem('sala_token');
   const tbody = document.getElementById('radarTableBody');
   try {
-    const res = await fetch(`${API_BASE}/logs', {
+    const res = await fetch(API_BASE + '/logs', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
@@ -410,7 +410,7 @@ async function loadBannedIps() {
   const token = localStorage.getItem('sala_token');
   const container = document.getElementById('bannedIpsContainer');
   try {
-    const res = await fetch(`${API_BASE}/security/banned-ips', {
+    const res = await fetch(API_BASE + '/security/banned-ips', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
@@ -437,7 +437,7 @@ async function unbanIp(ip) {
   if (!confirm(`คุณต้องการปลดล็อก IP ${ip} ใช่หรือไม่?`)) return;
   const token = localStorage.getItem('sala_token');
   try {
-    const res = await fetch(`${API_BASE}/security/unban', {
+    const res = await fetch(API_BASE + '/security/unban', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -588,7 +588,7 @@ async function clearAllSecurityLogs() {
   if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างประวัติความปลอดภัยทั้งหมด?')) return;
   const token = localStorage.getItem('sala_token');
   try {
-    const res = await fetch(`${API_BASE}/logs', {
+    const res = await fetch(API_BASE + '/logs', {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });

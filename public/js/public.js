@@ -47,7 +47,7 @@ async function checkAuthSession() {
   }
 
   try {
-    const res = await fetch(`${API_BASE}/auth/me', {
+    const res = await fetch(API_BASE + '/auth/me', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
@@ -85,7 +85,7 @@ async function handlePublicLogout() {
   const token = localStorage.getItem('sala_token');
   if (token) {
     try {
-      await fetch(`${API_BASE}/auth/logout', {
+      await fetch(API_BASE + '/auth/logout', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -455,7 +455,7 @@ function renderNewsCard(n) {
 async function loadNews() {
   const container = document.getElementById('newsContainer');
   try {
-    const res = await fetch(`${API_BASE}/news');
+    const res = await fetch(API_BASE + '/news');
     const data = await res.json();
     if (data.success && Array.isArray(data.data) && data.data.length > 0) {
       allNews = data.data;
@@ -519,7 +519,7 @@ async function submitProposal(e) {
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึกข้อมูล...';
 
   try {
-    const res = await fetch(`${API_BASE}/proposals', {
+    const res = await fetch(API_BASE + '/proposals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)

@@ -189,7 +189,7 @@ function normalizeStatus(s) {
 
 async function loadSettings() {
   try {
-    const res = await fetch(`${API_BASE}/settings');
+    const res = await fetch(API_BASE + '/settings');
     const data = await res.json();
     if (data.success && data.settings) {
       appSettings = data.settings;
@@ -214,7 +214,7 @@ async function loadSettings() {
 
 async function loadProposals() {
   try {
-    const res = await fetch(`${API_BASE}/proposals');
+    const res = await fetch(API_BASE + '/proposals');
     const data = await res.json();
     if (data.success && data.data) {
       allProposals = data.data;

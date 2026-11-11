@@ -68,7 +68,7 @@ async function checkAuthSession() {
     return;
   }
   try {
-    const res = await fetch(`${API_BASE}/auth/me', {
+    const res = await fetch(API_BASE + '/auth/me', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
@@ -198,7 +198,7 @@ async function handleGateLogin(e) {
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...';
 
   try {
-    const res = await fetch(`${API_BASE}/auth/login', {
+    const res = await fetch(API_BASE + '/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -226,7 +226,7 @@ async function handleLogout() {
   const token = localStorage.getItem('sala_token');
   if (token) {
     try {
-      await fetch(`${API_BASE}/auth/logout', {
+      await fetch(API_BASE + '/auth/logout', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -241,7 +241,7 @@ async function handleLogout() {
 async function loadProposals() {
   const token = localStorage.getItem('sala_token');
   try {
-    const res = await fetch(`${API_BASE}/proposals', {
+    const res = await fetch(API_BASE + '/proposals', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
@@ -1183,7 +1183,7 @@ async function loadManageNewsList() {
   const container = document.getElementById('manageNewsList');
   if (!container) return;
   try {
-    const res = await fetch(`${API_BASE}/news');
+    const res = await fetch(API_BASE + '/news');
     const data = await res.json();
     if (data.success && Array.isArray(data.data)) {
       manageNewsData = data.data;

@@ -63,7 +63,7 @@
         ระบบบริหารจัดการข้อเสนอโครงการ เทศบาลตำบลแม่สาย
       </p>
 
-      <form id="formStaffGateLogin" onsubmit="handleGateLogin(event)" style="text-align: left;" autocomplete="off">
+      <form id="formStaffGateLogin" onsubmit="event.preventDefault(); handleGateLogin(event);" action="javascript:void(0);" method="POST" style="text-align: left;" autocomplete="off">
         <!-- Trap browser autofill so real fields stay 100% blank -->
         <input type="text" name="fake_autofill_user" style="display:none;" tabindex="-1" autocomplete="username">
         <input type="password" name="fake_autofill_pass" style="display:none;" tabindex="-1" autocomplete="current-password">

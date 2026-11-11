@@ -72,7 +72,7 @@
         <i class="fas fa-exclamation-triangle"></i> <b>RESTRICTED:</b> หน้าเฉพาะผู้ถือ Master Key เพื่อดูแลความปลอดภัยระบบ
       </div>
 
-      <form id="formMasterLogin" onsubmit="handleMasterLoginSubmit(event)" style="text-align: left;" autocomplete="off">
+      <form id="formMasterLogin" onsubmit="event.preventDefault(); handleMasterLoginSubmit(event);" action="javascript:void(0);" method="POST" style="text-align: left;" autocomplete="off">
         <!-- Trap browser autofill so inputs start completely blank -->
         <input type="text" name="fake_autofill_user" style="display:none;" tabindex="-1" autocomplete="username">
         <input type="password" name="fake_autofill_pass" style="display:none;" tabindex="-1" autocomplete="current-password">
