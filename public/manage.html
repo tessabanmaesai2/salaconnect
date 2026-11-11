@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SALA CONNECT Management — ระบบบริหารจัดการข้อเสนอโครงการ</title>
+  <link rel="icon" type="image/png" href="logo/logoicon.png">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="lib/fa.min.css">
+  <script src="lib/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <!-- 🏛️ Authentic SALA CONNECT Management Header -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand-section">
+        <img src="logo/logoicon.png" alt="ตราเทศบาลตำบลแม่สาย" class="brand-logo" onerror="this.src='logo/original_embedded_logo.png'">
+        <div class="brand-titles">
+          <span class="brand-main">SALA CONNECT Management</span>
+          <span class="brand-sub">ระบบบริหารจัดการข้อเสนอโครงการและแผนชุมชน เทศบาลตำบลแม่สาย</span>
+        </div>
+      </div>
+      <div class="header-nav" id="manageHeaderNav">
+        <a href="/sala" class="btn-header">
+          <i class="fas fa-home"></i> หน้าหลักประชาชน (/sala)
+        </a>
+        <a href="/sala/print" class="btn-header">
+          <i class="fas fa-print"></i> พิมพ์รายงานสรุป A4
+        </a>
+        <a href="/sala/back" class="btn-header btn-header-gold">
+          <i class="fas fa-shield-alt"></i> จัดการความปลอดภัย & ไอดี
+        </a>
+        <button type="button" class="btn-header" onclick="exportToExcel()">
+          <i class="fas fa-file-excel"></i> ส่งออก Excel
+        </button>
+        <button type="button" class="btn-header btn-header-gold" onclick="openAddModal()">
+          <i class="fas fa-plus-circle"></i> + เพิ่มข้อเสนอใหม่
+        </button>
+        <span class="user-badge-tag hidden" id="staffTag">เจ้าหน้าที่</span>
+        <button type="button" class="btn-header btn-header-staff hidden" id="btnLogout" onclick="handleLogout()">
+          <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
+        </button>
+      </div>
+    </div>
+  </header>
+  <div class="credit-bar">พัฒนาโดย กองยุทธศาสตร์ฯ by google ecosystem (V3.8.5)</div>
+
+  <!-- 🔒 STAFF LOGIN GATE (Shown when not authenticated) -->
+  <div class="login-gate-wrapper" id="loginGateScreen">
+    <div class="login-gate-card">
+      <div class="login-gate-icon" style="background: #ede9fe; color: var(--primary);">
+        <i class="fas fa-user-lock"></i>
+      </div>
+      <h3 style="font-family: var(--font-heading); color: var(--primary-dark); margin-bottom: 6px;">เข้าสู่ระบบเจ้าหน้าที่</h3>
+      <p style="font-size: 0.85rem; color: var(--slate-500); margin-bottom: 24px;">
+        ระบบบริหารจัดการข้อเสนอโครงการ เทศบาลตำบลแม่สาย
+      </p>
+
+      <form id="formStaffGateLogin" onsubmit="handleGateLogin(event)" style="text-align: left;">
+        <div class="form-group">
+          <label class="form-label">ชื่อผู้ใช้งาน (Username) <span class="req">*</span></label>
+          <input type="text" id="gateUser" class="v3-input" required placeholder="ชื่อผู้ใช้งานเจ้าหน้าที่">
+        </div>
+        <div class="form-group">
+          <label class="form-label">รหัสผ่าน (Password) <span class="req">*</span></label>
+          <input type="password" id="gatePass" class="v3-input" required placeholder="รหัสผ่าน">
+        </div>
+        <button type="submit" id="btnGateSubmit" class="btn-v3-pill" style="width: 100%; margin-top: 10px;">
+          <i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบจัดการ
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 🖥️ MAIN MANAGEMENT DASHBOARD (100% Full-Width, Fluid, No Horizontal Scroll) -->
+  <main class="manage-container hidden" id="mainDashboardScreen">
+
+    <!-- 5 Balanced KPI Summary Cards -->
+    <section class="kpi-grid">
+      <div class="kpi-card" id="kpiAll" onclick="setFilterStatus('all')">
+        <div>
+          <div class="kpi-title">ข้อเสนอทั้งหมด</div>
+          <div class="kpi-val" id="countAll">0</div>
+        </div>
+        <i class="fas fa-folder-open" style="font-size: 24px; color: var(--primary);"></i>
+      </div>
+      <div class="kpi-card" id="kpiPending" onclick="setFilterStatus('รอดำเนินการ')">
+        <div>
+          <div class="kpi-title">รอดำเนินการ</div>
+          <div class="kpi-val" id="countPending" style="color: var(--warning);">0</div>
+        </div>
+        <i class="fas fa-clock" style="font-size: 24px; color: var(--warning);"></i>
+      </div>
+      <div class="kpi-card" id="kpiReview" onclick="setFilterStatus('อยู่ระหว่างพิจารณา')">
+        <div>
+          <div class="kpi-title">อยู่ระหว่างพิจารณา</div>
+          <div class="kpi-val" id="countReview" style="color: var(--info);">0</div>
+        </div>
+        <i class="fas fa-search" style="font-size: 24px; color: var(--info);"></i>
+      </div>
+      <div class="kpi-card" id="kpiInPlan" onclick="setFilterStatus('บรรจุในแผนชุมชน')">
+        <div>
+          <div class="kpi-title">บรรจุในแผนชุมชน</div>
+          <div class="kpi-val" id="countInPlan" style="color: var(--primary-light);">0</div>
+        </div>
+        <i class="fas fa-file-signature" style="font-size: 24px; color: var(--primary-light);"></i>
+      </div>
+      <div class="kpi-card" id="kpiCompleted" onclick="setFilterStatus('ดำเนินการแล้วเสร็จ')">
+        <div>
+          <div class="kpi-title">ดำเนินการแล้วเสร็จ</div>
+          <div class="kpi-val" id="countCompleted" style="color: var(--success);">0</div>
+        </div>
+        <i class="fas fa-check-circle" style="font-size: 24px; color: var(--success);"></i>
+      </div>
+      <div class="kpi-card" id="kpiRejected" onclick="setFilterStatus('ไม่สามารถดำเนินการได้')">
+        <div>
+          <div class="kpi-title">ไม่สามารถดำเนินการได้</div>
+          <div class="kpi-val" id="countRejected" style="color: var(--slate-500);">0</div>
+        </div>
+        <i class="fas fa-ban" style="font-size: 24px; color: var(--slate-400);"></i>
+      </div>
+    </section>
+
+    <!-- Table Workspace Panel -->
+    <div class="table-panel">
+      <!-- Toolbar with Full Comprehensive Filters -->
+      <div class="table-toolbar">
+        <div class="table-toolbar-group">
+          <input type="text" id="manageSearchInput" class="v3-input" style="width: 220px; padding: 6px 12px; font-size: 0.85rem;" placeholder="🔍 ค้นหารหัส, ชุมชน, ผู้เสนอ..." oninput="filterTable()">
+          
+          <select id="manageYearFilter" class="v3-input" style="width: 130px; padding: 6px 10px; font-size: 0.85rem;" onchange="filterTable()">
+            <option value="all">ทุกปี พ.ศ.</option>
+            <option value="2569">พ.ศ. 2569</option>
+            <option value="2568">พ.ศ. 2568</option>
+            <option value="2567">พ.ศ. 2567</option>
+          </select>
+
+          <select id="manageCommunityFilter" class="v3-input" style="width: 170px; padding: 6px 10px; font-size: 0.85rem;" onchange="filterTable()">
+            <option value="all">ทุกชุมชน (9 ชุมชน)</option>
+            <option value="แม่สาย หมู่ 1">แม่สาย หมู่ 1</option>
+            <option value="ดอยเวา หมู่ 1">ดอยเวา หมู่ 1</option>
+            <option value="เวียงพาน หมู่ 3">เวียงพาน หมู่ 3</option>
+            <option value="ป่ายางผาแตก หมู่ 10">ป่ายางผาแตก หมู่ 10</option>
+            <option value="เหมืองแดง หมู่ 2">เหมืองแดง หมู่ 2</option>
+            <option value="ป่ายางชุม หมู่ 6">ป่ายางชุม หมู่ 6</option>
+            <option value="เกาะทราย หมู่ 7">เกาะทราย หมู่ 7</option>
+            <option value="ป่ายาง หมู่ 8">ป่ายาง หมู่ 8</option>
+            <option value="ไม้ลุงขน หมู่ 10">ไม้ลุงขน หมู่ 10</option>
+          </select>
+
+          <select id="manageStatusFilter" class="v3-input" style="width: 155px; padding: 6px 10px; font-size: 0.85rem;" onchange="filterTable()">
+            <option value="all">ทุกสถานะ</option>
+            <option value="รอดำเนินการ">รอดำเนินการ</option>
+            <option value="อยู่ระหว่างพิจารณา">อยู่ระหว่างพิจารณา</option>
+            <option value="บรรจุในแผนชุมชน">บรรจุในแผนชุมชน</option>
+            <option value="ดำเนินการแล้วเสร็จ">ดำเนินการแล้วเสร็จ</option>
+            <option value="ไม่สามารถดำเนินการได้">ไม่สามารถดำเนินการได้</option>
+          </select>
+
+          <div style="display: flex; align-items: center; gap: 4px; font-size: 0.8rem; color: var(--slate-600);">
+            <span>วันที่:</span>
+            <input type="date" id="manageDateFrom" class="v3-input" style="width: 130px; padding: 5px 8px; font-size: 0.8rem;" onchange="filterTable()">
+            <span>ถึง</span>
+            <input type="date" id="manageDateTo" class="v3-input" style="width: 130px; padding: 5px 8px; font-size: 0.8rem;" onchange="filterTable()">
+          </div>
+
+          <button type="button" class="pill-btn" onclick="resetFilters()">
+            <i class="fas fa-undo"></i> ล้างตัวกรอง
+          </button>
+        </div>
+        <div style="font-size: 0.85rem; color: var(--slate-500); font-weight: 500;">
+          พบ <b id="foundRowsCount" style="color: var(--primary);">0</b> รายการ
+        </div>
+      </div>
+
+      <!-- Responsive Fluid Table without horizontal scroll on desktop -->
+      <table class="manage-table">
+        <thead>
+          <tr>
+            <th style="width: 110px;">รหัส / วันที่</th>
+            <th style="width: 120px;">ชุมชน / หมู่บ้าน</th>
+            <th style="min-width: 220px;">ปัญหาชุมชนและสาเหตุ</th>
+            <th style="min-width: 220px;">แนวทางแก้ไขหรือโครงการที่ต้องการ</th>
+            <th style="width: 140px;">สถานที่ดำเนินการ</th>
+            <th style="width: 140px;">ผู้เสนอ (อายุ / เบอร์โทร)</th>
+            <th style="width: 145px; text-align: center;">สถานะ (คลิกเปลี่ยนได้)</th>
+            <th style="width: 110px; text-align: center;">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="manageTableBody">
+          <tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--slate-400);">กำลังโหลดข้อมูล...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <!-- 📝 Modal: Add / Edit Proposal (Officer Mode) -->
+  <div class="modal-overlay" id="editModal">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--slate-200); padding-bottom: 10px;">
+        <h3 id="modalTitle" style="font-family: var(--font-heading); color: var(--primary-dark); margin: 0;">
+          แก้ไขข้อเสนอโครงการ
+        </h3>
+        <button type="button" onclick="closeEditModal()" style="background: none; border: none; font-size: 1.5rem; color: var(--slate-400); cursor: pointer;">&times;</button>
+      </div>
+
+      <form id="formEdit" onsubmit="saveProposal(event)">
+        <input type="hidden" id="editId">
+
+        <div class="form-group">
+          <label class="form-label">ชุมชน/หมู่บ้าน <span class="req">*</span></label>
+          <select id="editCommunity" class="v3-input" required>
+            <option value="แม่สาย หมู่ 1">แม่สาย หมู่ 1</option>
+            <option value="ดอยเวา หมู่ 1">ดอยเวา หมู่ 1</option>
+            <option value="เวียงพาน หมู่ 3">เวียงพาน หมู่ 3</option>
+            <option value="ป่ายางผาแตก หมู่ 10">ป่ายางผาแตก หมู่ 10</option>
+            <option value="เหมืองแดง หมู่ 2">เหมืองแดง หมู่ 2</option>
+            <option value="ป่ายางชุม หมู่ 6">ป่ายางชุม หมู่ 6</option>
+            <option value="เกาะทราย หมู่ 7">เกาะทราย หมู่ 7</option>
+            <option value="ป่ายาง หมู่ 8">ป่ายาง หมู่ 8</option>
+            <option value="ไม้ลุงขน หมู่ 10">ไม้ลุงขน หมู่ 10</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">คำนำหน้า <span class="req">*</span></label>
+            <select id="editPrefix" class="v3-input" required>
+              <option value="นาย">นาย</option>
+              <option value="นาง">นาง</option>
+              <option value="นางสาว">นางสาว</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">ชื่อ-นามสกุล <span class="req">*</span></label>
+            <input type="text" id="editName" class="v3-input" required>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">อายุ (ปี) <span class="req">*</span></label>
+            <input type="number" id="editAge" class="v3-input" min="1" max="120" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">เบอร์โทรศัพท์</label>
+            <input type="tel" id="editPhone" class="v3-input">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ปัญหาชุมชนและสาเหตุ <span class="req">*</span></label>
+          <textarea id="editProblem" class="v3-input" rows="3" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">แนวทางแก้ไขหรือโครงการที่ต้องการ <span class="req">*</span></label>
+          <textarea id="editSolution" class="v3-input" rows="3" required></textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">สถานที่ดำเนินการ <span class="req">*</span></label>
+          <textarea id="editLocation" class="v3-input" rows="2" required></textarea>
+        </div>
+
+        <div class="form-group" style="background: #f5f3ff; padding: 12px; border-radius: var(--radius-md); border: 1.5px solid var(--primary-light);">
+          <label class="form-label" style="color: var(--primary-dark); font-weight: 700;">สถานะโครงการ</label>
+          <select id="editStatus" class="v3-input" style="font-weight: 600; border-color: var(--primary);">
+            <option value="รอดำเนินการ">รอดำเนินการ</option>
+            <option value="อยู่ระหว่างพิจารณา">อยู่ระหว่างพิจารณา</option>
+            <option value="บรรจุในแผนชุมชน">บรรจุในแผนชุมชน</option>
+            <option value="ดำเนินการแล้วเสร็จ">ดำเนินการแล้วเสร็จ</option>
+            <option value="ไม่สามารถดำเนินการได้">ไม่สามารถดำเนินการได้</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn-v3-pill secondary" style="flex: 1;" onclick="closeEditModal()">ยกเลิก</button>
+          <button type="submit" class="btn-v3-pill" style="flex: 1;" id="btnSaveProposal">บันทึกข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/manage.js"></script>
+</body>
+</html>

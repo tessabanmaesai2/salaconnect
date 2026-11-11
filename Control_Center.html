@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SALA CONNECT — ศูนย์ควบคุมระบบ (Port 3405)</title>
+  <link rel="icon" type="image/png" href="public/logo/logoicon.png">
+  <link rel="stylesheet" href="public/css/style.css">
+  <link rel="stylesheet" href="public/lib/fa.min.css">
+  <style>
+    body {
+      background: #0f172a;
+      color: #f8fafc;
+      min-height: 100vh;
+    }
+    .cockpit-container {
+      max-width: 1200px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+    .cockpit-card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: var(--radius-md);
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+    .url-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.45rem 0.95rem;
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 6px;
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-right: 0.5rem;
+      margin-bottom: 0.5rem;
+      transition: all 0.2s;
+    }
+    .url-pill:hover {
+      background: var(--primary);
+      color: #0f172a;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="cockpit-container">
+    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; border-bottom: 2px solid var(--primary); padding-bottom: 1rem;">
+      <div style="display: flex; align-items: center; gap: 1rem;">
+        <img src="public/logo/SALA-C.png" alt="SALA Logo" style="height: 54px; width: 54px;" onerror="this.src='public/logo/logoicon.png'">
+        <div>
+          <h1 style="font-family: var(--font-heading); font-size: 1.6rem; color: var(--primary); margin: 0;">
+            SALA CONNECT Control Center
+          </h1>
+          <p style="font-size: 0.85rem; color: #94a3b8; margin: 0;">
+            ศูนย์ควบคุมระบบศาลาประชาคมออนไลน์ เทศบาลตำบลแม่สาย (Local Port: 3405 | Path: /sala)
+          </p>
+        </div>
+      </div>
+      <div>
+        <span style="display: inline-block; padding: 0.35rem 0.85rem; background: #065f46; color: #34d399; border-radius: 9999px; font-weight: 700; font-size: 0.85rem;">
+          Local Ready
+        </span>
+      </div>
+    </div>
+
+    <!-- Quick Launch Links -->
+    <div class="cockpit-card">
+      <h3 style="font-family: var(--font-heading); font-size: 1.15rem; color: #f8fafc; margin-bottom: 1rem;">
+        ทางลัดเข้าใช้งานระบบ (Quick Access)
+      </h3>
+      <div style="display: flex; flex-wrap: wrap;">
+        <a href="http://localhost:3405/sala" target="_blank" class="url-pill">
+          หน้าหลักประชาชน (/sala)
+        </a>
+        <a href="http://localhost:3405/sala/manage" target="_blank" class="url-pill">
+          จัดการข้อเสนอชุมชน (/sala/manage)
+        </a>
+        <a href="http://localhost:3405/sala/back" target="_blank" class="url-pill">
+          จัดการไอดีผู้ใช้งาน (/sala/back)
+        </a>
+        <a href="http://localhost:3405/sala/print" target="_blank" class="url-pill">
+          ศูนย์พิมพ์รายงาน A4 (/sala/print)
+        </a>
+        <a href="http://localhost:3405/sala/api/health" target="_blank" class="url-pill">
+          ตรวจสอบสุขภาพ API (/sala/api/health)
+        </a>
+      </div>
+    </div>
+
+    <!-- System Architecture & Invariants -->
+    <div class="cockpit-card">
+      <h3 style="font-family: var(--font-heading); font-size: 1.15rem; color: #f8fafc; margin-bottom: 1rem;">
+        มาตรฐานความปลอดภัยและข้อกำหนดสถาปัตยกรรม (Municipal Invariants)
+      </h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; font-size: 0.85rem;">
+        <div style="background: rgba(15, 23, 42, 0.6); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+          <strong style="color: var(--primary);">มติ DEC-022 (Port Registry)</strong>
+          <p style="color: #94a3b8; margin-top: 0.35rem;">
+            จองพอร์ต 3405 สำหรับ SALA CONNECT และกำหนดเส้นทาง Ingress ประตูเดียวคือ <code>maesaios.com/sala/</code>
+          </p>
+        </div>
+        <div style="background: rgba(15, 23, 42, 0.6); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+          <strong style="color: var(--primary);">มติ DEC-021 (Local-First Sanctum)</strong>
+          <p style="color: #94a3b8; margin-top: 0.35rem;">
+            พัฒนาและทดสอบบนเครื่อง Localhost ให้สมบูรณ์ 100% ห้ามส่งคำสั่งขึ้น Production Cloud โดยเด็ดขาดจนกว่าผู้ใช้จะตรวจอนุมัติ
+          </p>
+        </div>
+        <div style="background: rgba(15, 23, 42, 0.6); padding: 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);">
+          <strong style="color: var(--primary);">การสำรองข้อมูล (Atomic DB Engine)</strong>
+          <p style="color: #94a3b8; margin-top: 0.35rem;">
+            เขียนไฟล์ลง <code>.tmp</code> ก่อนสลับชื่อ ป้องกันข้อมูลเสียหาย 100% พร้อมระบบ Snapshot สำรองข้อมูลรายวันอัตโนมัติ
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security Information Notice -->
+    <div class="cockpit-card">
+      <h3 style="font-family: var(--font-heading); font-size: 1.15rem; color: #f8fafc; margin-bottom: 0.75rem;">
+        การรักษาความปลอดภัยของระบบ
+      </h3>
+      <p style="font-size: 0.85rem; color: #94a3b8; line-height: 1.6;">
+        ระบบนี้ใช้การพิสูจน์ตัวตนผ่านระบบ Session Token และเก็บบันทึกประวัติการทำงาน (Security Audit Log) ทุกรายการ 
+        ห้ามเผยแพร่ข้อมูลรหัสผ่านหรือส่งต่อสิทธิ์การเข้าถึงให้แก่บุคคลภายนอกโดยเด็ดขาด 
+        หากต้องการจัดการเพิ่มหรือเปลี่ยนรหัสผ่านเจ้าหน้าที่ ให้ดำเนินการผ่านระบบ Back Office ที่ <code>/sala/back</code>
+      </p>
+    </div>
+
+  </div>
+
+</body>
+</html>

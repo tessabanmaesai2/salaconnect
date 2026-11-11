@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+Thumbs.db
+*.tmp
+.ai_temp/
+data/backups/
+data/security_logs.json

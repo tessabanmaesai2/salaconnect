@@ -1,0 +1,42 @@
+[
+  {
+    "id": 1,
+    "username": "thedatazero",
+    "name": "ผู้ดูแลระบบสูงสุด (Master Key)",
+    "role": "Super Admin",
+    "password": "Kn123990002466119842528",
+    "status": "Active",
+    "createdAt": "2026-11-11T05:48:15.727Z",
+    "updatedAt": "2026-11-11T05:48:15.728Z"
+  },
+  {
+    "id": 2,
+    "username": "admin",
+    "name": "ผู้ดูแลระบบ (Admin)",
+    "role": "Admin",
+    "password": "19842528",
+    "status": "Active",
+    "createdAt": "2026-11-11T05:48:15.728Z",
+    "updatedAt": "2026-11-11T05:48:15.728Z"
+  },
+  {
+    "id": 3,
+    "username": "officer",
+    "name": "เจ้าหน้าที่บันทึกข้อมูล (Officer)",
+    "role": "Officer",
+    "password": "1234",
+    "status": "Active",
+    "createdAt": "2026-11-11T05:48:15.728Z",
+    "updatedAt": "2026-11-11T05:48:15.728Z"
+  },
+  {
+    "id": 4,
+    "username": "viewer",
+    "name": "ผู้บริหาร / สมาชิกสภาฯ (Viewer)",
+    "role": "Viewer",
+    "password": "1234",
+    "status": "Active",
+    "createdAt": "2026-11-11T05:48:15.728Z",
+    "updatedAt": "2026-11-11T05:48:15.728Z"
+  }
+]

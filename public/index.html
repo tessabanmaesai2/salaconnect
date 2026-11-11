@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SALA CONNECT — ประชาคมออนไลน์ เทศบาลตำบลแม่สาย</title>
+  <link rel="icon" type="image/png" href="logo/logoicon.png">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="lib/fa.min.css">
+</head>
+<body>
+
+  <!-- 🏛️ Authentic SALA CONNECT Header -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand-section">
+        <img src="logo/logoicon.png" alt="ตราเทศบาลตำบลแม่สาย" class="brand-logo" onerror="this.src='logo/original_embedded_logo.png'">
+        <div class="brand-titles">
+          <span class="brand-main">SALA CONNECT</span>
+          <span class="brand-sub">ประชาคมออนไลน์ ทต. แม่สาย</span>
+        </div>
+      </div>
+      <div class="header-nav" id="headerAuthNav">
+        <button type="button" class="btn-header" id="btnLoginTrigger" onclick="openLoginModal()">
+          <i class="fas fa-sign-in-alt"></i> Login
+        </button>
+        <div id="userStaffSection" class="hidden" style="display: flex; align-items: center; gap: 8px;">
+          <a href="/sala/manage" class="btn-header btn-header-gold">
+            <i class="fas fa-tasks"></i> ระบบจัดการ
+          </a>
+          <span class="user-badge-tag" id="staffNameTag">เจ้าหน้าที่</span>
+          <button type="button" class="btn-header btn-header-staff" onclick="handleLogout()">
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+  <div class="credit-bar">พัฒนาโดย กองยุทธศาสตร์ฯ by google ecosystem (V3.8.5)</div>
+
+  <!-- 📱 Main Citizen SPA Container -->
+  <main class="spa-container">
+
+    <!-- 🏠 TAB 1: หน้าแรก (News & Announcements) -->
+    <section id="tab-home">
+      <div class="v3-card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h2 class="v3-card-title" style="margin-bottom: 0;">
+            <i class="fas fa-bullhorn" style="color: var(--secondary);"></i> ข่าวสารและประกาศประชาคม
+          </h2>
+          <button type="button" id="btnAddNewsBtn" class="btn-header btn-header-gold hidden" onclick="openAddNewsModal()" style="font-size: 0.8rem; padding: 4px 12px;">
+            <i class="fas fa-plus"></i> เพิ่มข่าว
+          </button>
+        </div>
+        <div id="newsContainer">
+          <div style="text-align: center; padding: 30px; color: var(--slate-400);">กำลังโหลดข่าวสาร...</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 📝 TAB 2: เสนอโครงการ (Authentic 9-field Citizen Form) -->
+    <section id="tab-proposal" class="hidden">
+      <div class="v3-card">
+        <h2 class="v3-card-title">
+          <i class="fas fa-pen-to-square" style="color: var(--primary);"></i> ร่วมเสนอโครงการและปัญหาชุมชน
+        </h2>
+        <p style="font-size: 0.85rem; color: var(--slate-500); margin-bottom: 20px;">
+          กรอกข้อมูลเพื่อนำเสนอเข้าสู่การจัดทำแผนพัฒนาชุมชน เทศบาลตำบลแม่สาย
+        </p>
+
+        <form id="formProposal" onsubmit="submitProposal(event)">
+          <div class="form-group">
+            <label class="form-label">ชุมชน/หมู่บ้าน <span class="req">*</span></label>
+            <select name="community" id="propCommunity" class="v3-input" required>
+              <option value="">-- กรุณาเลือกชุมชน --</option>
+              <option value="แม่สาย หมู่ 1">แม่สาย หมู่ 1</option>
+              <option value="ดอยเวา หมู่ 1">ดอยเวา หมู่ 1</option>
+              <option value="เวียงพาน หมู่ 3">เวียงพาน หมู่ 3</option>
+              <option value="ป่ายางผาแตก หมู่ 10">ป่ายางผาแตก หมู่ 10</option>
+              <option value="เหมืองแดง หมู่ 2">เหมืองแดง หมู่ 2</option>
+              <option value="ป่ายางชุม หมู่ 6">ป่ายางชุม หมู่ 6</option>
+              <option value="เกาะทราย หมู่ 7">เกาะทราย หมู่ 7</option>
+              <option value="ป่ายาง หมู่ 8">ป่ายาง หมู่ 8</option>
+              <option value="ไม้ลุงขน หมู่ 10">ไม้ลุงขน หมู่ 10</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">คำนำหน้า <span class="req">*</span></label>
+              <select name="prefix" id="propPrefix" class="v3-input" required>
+                <option value="นาย">นาย</option>
+                <option value="นาง">นาง</option>
+                <option value="นางสาว">นางสาว</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">ชื่อ-นามสกุล <span class="req">*</span></label>
+              <input type="text" name="name" class="v3-input" required placeholder="ระบุชื่อและนามสกุล">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">อายุ (ปี) <span class="req">*</span></label>
+            <input type="number" name="age" class="v3-input" min="1" max="120" required placeholder="ระบุอายุเป็นตัวเลข">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">ปัญหาชุมชนและสาเหตุ <span class="req">*</span></label>
+            <textarea name="problem" class="v3-input" rows="4" required placeholder="อธิบายสภาพปัญหาที่เกิดขึ้นและความเดือดร้อนของชุมชน..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">แนวทางแก้ไขหรือโครงการที่ต้องการ <span class="req">*</span></label>
+            <textarea name="solution" class="v3-input" rows="4" required placeholder="สิ่งที่ต้องการให้ทางเทศบาลเข้าดำเนินการช่วยเหลือหรือบรรจุในแผน..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">สถานที่ดำเนินการ <span class="req">*</span></label>
+            <textarea name="location" class="v3-input" rows="2" required placeholder="ระบุพิกัด ซอย ถนน หรือจุดอ้างอิงของปัญหา..."></textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">เบอร์โทรศัพท์ (ไม่บังคับ)</label>
+            <input type="tel" name="phone" class="v3-input" placeholder="ระบุเพื่อให้เจ้าหน้าที่ติดต่อประสานงานเพิ่มเติม">
+          </div>
+
+          <!-- PDPA Consent Box -->
+          <div class="form-group" style="background: var(--slate-50); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--slate-200);">
+            <div style="display: flex; gap: 10px; align-items: flex-start;">
+              <input type="checkbox" id="pdpaConsent" name="pdpa_consent" required style="width: 18px; height: 18px; margin-top: 3px; cursor: pointer;">
+              <label for="pdpaConsent" style="font-size: 0.85rem; color: var(--slate-600); cursor: pointer; line-height: 1.5;">
+                ข้าพเจ้ายินยอมให้ <b>เทศบาลตำบลแม่สาย</b> จัดเก็บและประมวลผลข้อมูลส่วนบุคคลข้างต้น เพื่อประโยชน์ในการแก้ไขปัญหาและจัดทำแผนพัฒนาชุมชนตาม พ.ร.บ.คุ้มครองข้อมูลส่วนบุคคล (PDPA)
+              </label>
+            </div>
+          </div>
+
+          <button type="submit" id="btnSubmitProp" class="btn-v3-pill" style="width: 100%; margin-top: 10px;">
+            <i class="fas fa-paper-plane"></i> ส่งข้อเสนอโครงการ
+          </button>
+        </form>
+      </div>
+    </section>
+
+    <!-- 📋 TAB 3: ข้อเสนอ (Tracking & History) -->
+    <section id="tab-history" class="hidden">
+      <div class="v3-card" style="padding: 16px; margin-bottom: 14px;">
+        <input type="text" id="searchHistory" class="v3-input" placeholder="🔍 ค้นหาข้อเสนอ, ปัญหา, สถานที่..." oninput="filterHistory()" style="margin-bottom: 10px;">
+        <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
+          <select id="filterHistoryCommunity" class="v3-input" onchange="filterHistory()">
+            <option value="all">ทุกชุมชน (9 ชุมชน)</option>
+            <option value="แม่สาย หมู่ 1">แม่สาย หมู่ 1</option>
+            <option value="ดอยเวา หมู่ 1">ดอยเวา หมู่ 1</option>
+            <option value="เวียงพาน หมู่ 3">เวียงพาน หมู่ 3</option>
+            <option value="ป่ายางผาแตก หมู่ 10">ป่ายางผาแตก หมู่ 10</option>
+            <option value="เหมืองแดง หมู่ 2">เหมืองแดง หมู่ 2</option>
+            <option value="ป่ายางชุม หมู่ 6">ป่ายางชุม หมู่ 6</option>
+            <option value="เกาะทราย หมู่ 7">เกาะทราย หมู่ 7</option>
+            <option value="ป่ายาง หมู่ 8">ป่ายาง หมู่ 8</option>
+            <option value="ไม้ลุงขน หมู่ 10">ไม้ลุงขน หมู่ 10</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="historyContainer">
+        <div style="text-align: center; padding: 30px; color: var(--slate-400);">กำลังโหลดข้อมูลข้อเสนอ...</div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 📱 Floating Bottom Navigation Dock -->
+  <nav class="bottom-nav">
+    <button type="button" class="nav-item active" id="navHome" onclick="switchPage('home')">
+      <i class="fas fa-house"></i>
+      <span>หน้าแรก</span>
+    </button>
+    <button type="button" class="nav-item prominent" id="navProposal" onclick="switchPage('proposal')">
+      <i class="fas fa-pen-to-square"></i>
+      <span>เสนอโครงการ</span>
+    </button>
+    <button type="button" class="nav-item" id="navHistory" onclick="switchPage('history')">
+      <i class="fas fa-list-check"></i>
+      <span>ข้อเสนอ</span>
+    </button>
+  </nav>
+
+  <!-- 🔐 Staff Login Modal -->
+  <div class="modal-overlay" id="loginModal">
+    <div class="modal-card" style="max-width: 380px; text-align: center;">
+      <div style="width: 56px; height: 56px; border-radius: 50%; background: #ede9fe; color: var(--primary); display: inline-flex; align-items: center; justify-content: center; font-size: 24px; margin-bottom: 14px;">
+        <i class="fas fa-user-lock"></i>
+      </div>
+      <h3 style="font-family: var(--font-heading); color: var(--primary-dark); margin-bottom: 4px;">STAFF LOGIN</h3>
+      <p style="font-size: 0.85rem; color: var(--slate-500); margin-bottom: 20px;">ระบุบัญชีผู้ใช้เพื่อเข้าถึงระบบเจ้าหน้าที่</p>
+
+      <form id="formLogin" onsubmit="handleStaffLogin(event)" style="text-align: left;">
+        <div class="form-group">
+          <label class="form-label">ชื่อผู้ใช้งาน (Username) <span class="req">*</span></label>
+          <input type="text" id="loginUser" class="v3-input" required placeholder="ชื่อผู้ใช้งาน">
+        </div>
+        <div class="form-group">
+          <label class="form-label">รหัสผ่าน (Password) <span class="req">*</span></label>
+          <input type="password" id="loginPass" class="v3-input" required placeholder="รหัสผ่าน">
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 24px;">
+          <button type="button" class="btn-v3-pill secondary" style="flex: 1;" onclick="closeLoginModal()">ยกเลิก</button>
+          <button type="submit" class="btn-v3-pill" style="flex: 1;" id="btnLoginSubmit">ตกลง</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 🔍 Proposal Detail Modal -->
+  <div class="modal-overlay" id="detailModal">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--slate-200); padding-bottom: 10px;">
+        <h3 id="detailCodeTitle" style="font-family: var(--font-heading); color: var(--primary-dark); margin: 0;">รายละเอียดข้อเสนอ</h3>
+        <button type="button" onclick="closeDetailModal()" style="background: none; border: none; font-size: 1.5rem; color: var(--slate-400); cursor: pointer;">&times;</button>
+      </div>
+      <div id="detailBody" style="font-size: 0.9rem; line-height: 1.7; color: var(--slate-700);"></div>
+      <div style="margin-top: 20px; text-align: right;">
+        <button type="button" class="btn-v3-pill secondary" onclick="closeDetailModal()">ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📢 Add News Modal (Staff Only) -->
+  <div class="modal-overlay" id="newsModal">
+    <div class="modal-card">
+      <h3 style="font-family: var(--font-heading); color: var(--primary-dark); margin-bottom: 16px;">
+        <i class="fas fa-bullhorn"></i> เพิ่มประกาศข่าวสาร
+      </h3>
+      <form id="formAddNews" onsubmit="submitNews(event)">
+        <div class="form-group">
+          <label class="form-label">หัวข้อข่าวสาร <span class="req">*</span></label>
+          <input type="text" id="newsTitle" class="v3-input" required placeholder="ระบุหัวข้อข่าวสาร...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">เนื้อหาข่าวสาร <span class="req">*</span></label>
+          <textarea id="newsDetail" class="v3-input" rows="5" required placeholder="ระบุรายละเอียดข่าวสารหรือกำหนดการ..."></textarea>
+        </div>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn-v3-pill secondary" style="flex: 1;" onclick="closeAddNewsModal()">ยกเลิก</button>
+          <button type="submit" class="btn-v3-pill" style="flex: 1;">บันทึกข่าวสาร</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/public.js"></script>
+</body>
+</html>

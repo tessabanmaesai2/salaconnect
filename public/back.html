@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SALA CONNECT — Super Admin & Security Radar (DEC-026)</title>
+  <link rel="icon" type="image/png" href="logo/logoicon.png">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="lib/fa.min.css">
+  <style>
+    .threat-badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: var(--radius-pill);
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .threat-info { background: #dcfce7; color: #15803d; border: 1px solid #86efac; }
+    .threat-warn { background: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
+    .threat-critical { background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5; }
+
+    .badge-app-sala {
+      background: #f3e8ff;
+      color: #6b21a8;
+      border: 1px solid #d8b4fe;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 🏛️ Master Header (Screen Only) -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand-section">
+        <img src="logo/logoicon.png" alt="ตราเทศบาลตำบลแม่สาย" class="brand-logo" onerror="this.src='logo/original_embedded_logo.png'">
+        <div class="brand-titles">
+          <span class="brand-main">SALA CONNECT SECURITY & COMMAND CENTER</span>
+          <span class="brand-sub">เทศบาลตำบลแม่สาย • ระบบเรดาร์ความปลอดภัยและจัดการสิทธิ์ (DEC-026)</span>
+        </div>
+      </div>
+      <div class="header-nav">
+        <a href="/sala" class="btn-header">
+          <i class="fas fa-home"></i> หน้าหลัก (/sala)
+        </a>
+        <a href="/sala/manage" class="btn-header">
+          <i class="fas fa-tasks"></i> ระบบจัดการ (/manage)
+        </a>
+        <button type="button" id="btnMasterLogout" class="btn-header btn-header-staff hidden" onclick="handleMasterLogout()">
+          <i class="fas fa-lock"></i> ออกจากระบบ
+        </button>
+      </div>
+    </div>
+  </header>
+  <div class="credit-bar">มาตรฐานความปลอดภัยระบบคลาวด์เทศบาลตำบลแม่สาย DEC-020 & DEC-026</div>
+
+  <!-- 🛡️ MASTER KEY LOGIN SCREEN (Strict: Single Password, ZERO LEAKS) -->
+  <div class="login-gate-wrapper" id="masterLoginScreen">
+    <div class="login-gate-card">
+      <div class="login-gate-icon">
+        <i class="fas fa-shield-alt"></i>
+      </div>
+      <h3 style="font-family: var(--font-heading); color: var(--slate-900); margin-bottom: 4px;">SALA CONNECT Super Admin</h3>
+      <p style="font-size: 0.85rem; color: var(--slate-500); margin-bottom: 16px;">
+        ระบบจัดการบัญชีเจ้าหน้าที่ & เรดาร์ความปลอดภัย
+      </p>
+
+      <div style="background: #fffbeb; border: 1px solid #fde68a; color: #92400e; padding: 10px 14px; border-radius: var(--radius-md); font-size: 0.8rem; text-align: left; margin-bottom: 20px;">
+        <i class="fas fa-exclamation-triangle"></i> <b>RESTRICTED:</b> หน้าเฉพาะผู้ถือ Master Key เพื่อดูแลความปลอดภัยระบบ
+      </div>
+
+      <form id="formMasterLogin" onsubmit="handleMasterLoginSubmit(event)" style="text-align: left;">
+        <div class="form-group">
+          <label class="form-label">Master Key Password <span class="req">*</span></label>
+          <input type="password" id="masterKeyPasswordInput" class="v3-input" required placeholder="กรอก Master Key...">
+        </div>
+        <button type="submit" id="btnMasterSubmit" class="btn-v3-pill danger" style="width: 100%; margin-top: 10px;">
+          <i class="fas fa-key"></i> เข้าสู่ระบบความปลอดภัย
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- 🖥️ MAIN MASTER DASHBOARD SCREEN (DEC-026 Unified Standard) -->
+  <main class="manage-container hidden" id="masterDashboardScreen">
+
+    <!-- Top Navigation Tabs -->
+    <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 2px solid var(--slate-200); padding-bottom: 8px;">
+      <button type="button" class="btn-v3-pill" id="tabBtnUsers" onclick="switchMasterTab('users')">
+        <i class="fas fa-users-cog"></i> จัดการบัญชีเจ้าหน้าที่ (Staff Accounts)
+      </button>
+      <button type="button" class="btn-v3-pill secondary" id="tabBtnRadar" onclick="switchMasterTab('radar')">
+        <i class="fas fa-satellite-dish"></i> เรดาร์ความปลอดภัย (Security Radar DEC-026)
+      </button>
+    </div>
+
+    <!-- ─── TAB 1: USER & ID MANAGEMENT ─── -->
+    <section id="sectionUsers">
+      <div class="table-panel">
+        <div class="table-toolbar">
+          <div style="font-family: var(--font-heading); font-size: 1.1rem; font-weight: 700; color: var(--slate-800);">
+            <i class="fas fa-users-cog" style="color: var(--primary);"></i> บัญชีเจ้าหน้าที่ผู้ดูแลระบบ (SALA CONNECT Staff)
+          </div>
+          <div>
+            <button type="button" class="btn-v3-pill" onclick="openAddUserModal()">
+              <i class="fas fa-user-plus"></i> + เพิ่มเจ้าหน้าที่ใหม่
+            </button>
+          </div>
+        </div>
+
+        <table class="manage-table">
+          <thead>
+            <tr>
+              <th style="width: 60px; text-align: center;">ID</th>
+              <th style="width: 160px;">ชื่อผู้ใช้งาน (Username)</th>
+              <th style="width: 200px;">ชื่อ-นามสกุล</th>
+              <th style="width: 140px; text-align: center;">สิทธิ์การใช้งาน (Role)</th>
+              <th style="width: 110px; text-align: center;">สถานะ</th>
+              <th style="width: 160px; text-align: center;">การจัดการ</th>
+            </tr>
+          </thead>
+          <tbody id="userTableBody">
+            <tr><td colspan="6" style="text-align: center; padding: 30px; color: var(--slate-400);">กำลังโหลดข้อมูลเจ้าหน้าที่...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ─── TAB 2: MULTI-APP SECURITY RADAR (DEC-026) ─── -->
+    <section id="sectionRadar" class="hidden">
+      <!-- 4 Standard KPI Stat Cards -->
+      <div class="kpi-grid">
+        <div class="kpi-card" style="background: #eff6ff; border-color: #bfdbfe;">
+          <div>
+            <div class="kpi-title" style="color: #1e40af;">บันทึกทั้งหมด (Total Logs)</div>
+            <div class="kpi-val" id="radarStatTotal" style="color: #1d4ed8;">0</div>
+          </div>
+          <i class="fas fa-eye" style="font-size: 24px; color: #2563eb;"></i>
+        </div>
+        <div class="kpi-card" style="background: #f0fdf4; border-color: #bbf7d0;">
+          <div>
+            <div class="kpi-title" style="color: #166534;">ใช้งานปกติ (Normal / Info)</div>
+            <div class="kpi-val" id="radarStatInfo" style="color: #15803d;">0</div>
+          </div>
+          <i class="fas fa-shield-alt" style="font-size: 24px; color: #16a34a;"></i>
+        </div>
+        <div class="kpi-card" style="background: #fffbeb; border-color: #fde68a;">
+          <div>
+            <div class="kpi-title" style="color: #92400e;">น่าสงสัย (Warn / Bots)</div>
+            <div class="kpi-val" id="radarStatWarn" style="color: #d97706;">0</div>
+          </div>
+          <i class="fas fa-exclamation-triangle" style="font-size: 24px; color: #d97706;"></i>
+        </div>
+        <div class="kpi-card" style="background: #fef2f2; border-color: #fecaca;">
+          <div>
+            <div class="kpi-title" style="color: #991b1b;">สกัดกั้นการโจมตี (Blocked)</div>
+            <div class="kpi-val" id="radarStatCritical" style="color: #dc2626;">0</div>
+          </div>
+          <i class="fas fa-shield-virus" style="font-size: 24px; color: #dc2626;"></i>
+        </div>
+      </div>
+
+      <!-- Anti-Brute Force Banner -->
+      <div id="bannedIpsContainer"></div>
+
+      <!-- Radar Logs Table Panel -->
+      <div class="table-panel">
+        <div class="table-toolbar">
+          <div class="table-toolbar-group">
+            <input type="text" id="radarSearchInput" class="v3-input" style="width: 240px; padding: 6px 12px; font-size: 0.85rem;" placeholder="🔍 ค้นหา IP, แหล่งที่มา, อุปกรณ์..." oninput="handleRadarSearch()">
+            <div style="display: flex; gap: 4px;">
+              <button type="button" class="pill-btn active" id="pillThreatAll" onclick="setRadarThreatFilter('ALL')">ทั้งหมด</button>
+              <button type="button" class="pill-btn" id="pillThreatCritical" onclick="setRadarThreatFilter('CRITICAL')" style="color: #b91c1c;">🚨 อันตราย</button>
+              <button type="button" class="pill-btn" id="pillThreatWarn" onclick="setRadarThreatFilter('WARN')" style="color: #b45309;">🟡 น่าสงสัย</button>
+              <button type="button" class="pill-btn" id="pillThreatInfo" onclick="setRadarThreatFilter('INFO')" style="color: #15803d;">🟢 ปกติ</button>
+            </div>
+          </div>
+          <div class="table-toolbar-group">
+            <button type="button" class="pill-btn" onclick="loadSecurityLogs()">
+              <i class="fas fa-sync-alt"></i> รีเฟรช
+            </button>
+            <button type="button" class="pill-btn" onclick="exportSecurityLogsJson()">
+              <i class="fas fa-file-download"></i> Export JSON
+            </button>
+            <button type="button" class="pill-btn" style="color: var(--danger);" onclick="clearAllSecurityLogs()">
+              <i class="fas fa-trash-alt"></i> ล้างประวัติทั้งหมด
+            </button>
+          </div>
+        </div>
+
+        <!-- 8 Standard Columns per DEC-026 -->
+        <table class="manage-table">
+          <thead>
+            <tr>
+              <th style="width: 145px;">วัน-เวลา</th>
+              <th style="width: 125px; text-align: center;">แอปพลิเคชัน</th>
+              <th style="width: 110px; text-align: center;">ระดับความเสี่ยง</th>
+              <th style="min-width: 210px;">IP Address & แหล่งที่มา</th>
+              <th style="width: 160px;">อุปกรณ์ (Device / Agent)</th>
+              <th style="width: 150px;">กิจกรรม (Action)</th>
+              <th>รายละเอียด (Details)</th>
+              <th style="width: 65px; text-align: center;">ลบ</th>
+            </tr>
+          </thead>
+          <tbody id="radarTableBody">
+            <tr><td colspan="8" style="text-align: center; padding: 30px; color: var(--slate-400);">กำลังโหลดข้อมูลเรดาร์ความปลอดภัย...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 👤 Modal: Add / Edit Staff Account -->
+  <div class="modal-overlay" id="userModal">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--slate-200); padding-bottom: 10px;">
+        <h3 id="userModalTitle" style="font-family: var(--font-heading); color: var(--primary-dark); margin: 0;">
+          เพิ่มบัญชีเจ้าหน้าที่ใหม่
+        </h3>
+        <button type="button" onclick="closeUserModal()" style="background: none; border: none; font-size: 1.5rem; color: var(--slate-400); cursor: pointer;">&times;</button>
+      </div>
+
+      <form id="formUser" onsubmit="saveUserAccount(event)">
+        <input type="hidden" id="userId">
+
+        <div class="form-group">
+          <label class="form-label">ชื่อผู้ใช้งาน (Username) <span class="req">*</span></label>
+          <input type="text" id="inputUsername" class="v3-input" required placeholder="เช่น officer_maesai">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">ชื่อ-นามสกุลเจ้าหน้าที่ <span class="req">*</span></label>
+          <input type="text" id="inputName" class="v3-input" required placeholder="เช่น นายสมศักดิ์ มั่นคง">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">สิทธิ์การใช้งาน (Role) <span class="req">*</span></label>
+          <select id="inputRole" class="v3-input" required>
+            <option value="Officer">Officer (เจ้าหน้าที่บันทึกและจัดการข้อเสนอ)</option>
+            <option value="Admin">Admin (ผู้ดูแลระบบระดับกอง/งาน)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">รหัสผ่าน (Password) <span class="req" id="passReqMark">*</span></label>
+          <input type="password" id="inputPassword" class="v3-input" placeholder="กำหนดรหัสผ่าน">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">สถานะบัญชี</label>
+          <select id="inputStatus" class="v3-input">
+            <option value="Active">Active (เปิดใช้งาน)</option>
+            <option value="Disabled">Disabled (ระงับชั่วคราว)</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+          <button type="button" class="btn-v3-pill secondary" style="flex: 1;" onclick="closeUserModal()">ยกเลิก</button>
+          <button type="submit" class="btn-v3-pill" style="flex: 1;">บันทึกข้อมูล</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/back.js"></script>
+</body>
+</html>

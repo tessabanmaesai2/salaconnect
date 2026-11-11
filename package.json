@@ -1,0 +1,20 @@
+{
+  "name": "sala-connect",
+  "version": "1.0.0",
+  "description": "MAESAI SALA CONNECT — ศาลาประชาคมออนไลน์ เทศบาลตำบลแม่สาย",
+  "main": "server.cjs",
+  "scripts": {
+    "start": "node server.cjs",
+    "dev": "node control_center.cjs"
+  },
+  "keywords": [
+    "maesai",
+    "sala-connect",
+    "municipal",
+    "community-proposals"
+  ],
+  "author": "กองยุทธศาสตร์และงบประมาณ เทศบาลตำบลแม่สาย",
+  "license": "UNLICENSED",
+  "private": true
+}
+

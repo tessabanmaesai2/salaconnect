@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SALA CONNECT — พิมพ์รายงานและแบบเสนอโครงการ</title>
+  <link rel="icon" type="image/png" href="logo/logoicon.png">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/print.css">
+  <link rel="stylesheet" href="lib/fa.min.css">
+  <style>
+    .filter-grid-bar {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .filter-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .filter-item label {
+      font-family: var(--font-heading);
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--slate-600);
+    }
+    .filter-item select, .filter-item input {
+      font-family: var(--font-body);
+      font-size: 0.85rem;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--slate-300);
+      background: #ffffff;
+      outline: none;
+    }
+    .filter-item select:focus, .filter-item input:focus {
+      border-color: var(--primary);
+    }
+  </style>
+</head>
+<body class="print-preview-mode">
+
+  <!-- 🏛️ Authentic SALA CONNECT Header (Screen Only) -->
+  <header class="app-header no-print">
+    <div class="header-inner">
+      <div class="brand-section">
+        <img src="logo/logoicon.png" alt="ตราเทศบาลตำบลแม่สาย" class="brand-logo" onerror="this.src='logo/original_embedded_logo.png'">
+        <div class="brand-titles">
+          <span class="brand-main">SALA CONNECT</span>
+          <span class="brand-sub">ระบบพิมพ์รายงานเอกสารข้อเสนอโครงการ เทศบาลตำบลแม่สาย</span>
+        </div>
+      </div>
+      <div class="header-nav">
+        <a href="/sala/manage" class="btn-header">
+          <i class="fas fa-arrow-left"></i> กลับหน้าจัดการ (/manage)
+        </a>
+        <button type="button" class="btn-header btn-header-gold" onclick="window.print()">
+          <i class="fas fa-print"></i> สั่งพิมพ์ (Print / PDF)
+        </button>
+      </div>
+    </div>
+  </header>
+  <div class="credit-bar no-print">พัฒนาโดย กองยุทธศาสตร์ฯ by google ecosystem (V3.8.5)</div>
+
+  <!-- 🎛️ Comprehensive Filter Bar (Screen Only) -->
+  <div class="print-control-bar no-print" style="padding: 14px 24px;">
+    <div style="max-width: 1200px; margin: 0 auto;">
+      <div class="filter-grid-bar">
+        <div class="filter-item" style="grid-column: span 1;">
+          <label>รูปแบบรายงาน</label>
+          <select id="reportTemplateSelect" onchange="renderSelectedTemplate()">
+            <option value="summary_table">ตารางสรุปข้อเสนอทั้งหมด (A4 แนวนอน)</option>
+            <option value="individual_form">แบบเสนอโครงการรายบุคคล (A4 แนวตั้ง)</option>
+            <option value="community_summary">สรุปจำนวนแยกรายชุมชน (A4 แนวตั้ง)</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label>ปี พ.ศ.</label>
+          <select id="printYearFilter" onchange="renderSelectedTemplate()">
+            <option value="all">ทุกปี (ทั้งหมด)</option>
+            <option value="2569">พ.ศ. 2569</option>
+            <option value="2568">พ.ศ. 2568</option>
+            <option value="2567">พ.ศ. 2567</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label>ชุมชน / หมู่บ้าน</label>
+          <select id="printCommunityFilter" onchange="renderSelectedTemplate()">
+            <option value="all">ทุกชุมชน (9 ชุมชน)</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label>สถานะ</label>
+          <select id="printStatusFilter" onchange="renderSelectedTemplate()">
+            <option value="all">ทุกสถานะ</option>
+          </select>
+        </div>
+
+        <div class="filter-item">
+          <label>ตั้งแต่วันที่</label>
+          <input type="date" id="printDateFrom" onchange="renderSelectedTemplate()">
+        </div>
+
+        <div class="filter-item">
+          <label>ถึงวันที่</label>
+          <input type="date" id="printDateTo" onchange="renderSelectedTemplate()">
+        </div>
+
+        <div class="filter-item" style="display: flex; flex-direction: row; gap: 6px; align-items: flex-end;">
+          <button type="button" class="pill-btn" onclick="resetPrintFilters()" style="padding: 7px 12px; height: 35px; width: 100%;">
+            <i class="fas fa-undo"></i> ล้างตัวกรอง
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 📄 Print Simulation Viewport -->
+  <div class="print-viewport-container" id="printContainer">
+    <!-- Rendered dynamically via print.js -->
+  </div>
+
+  <script src="js/print.js"></script>
+</body>
+</html>
