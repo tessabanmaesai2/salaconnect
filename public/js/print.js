@@ -144,31 +144,16 @@ function renderSelectedTemplate() {
       const match = allProposals.find(p => p.id === parseInt(specificId, 10));
       filtered = match ? [match] : filtered;
     }
-    renderIndividualForms(container, filtered, yearFilter);
+    renderIndividualForms(container, filtered);
   } else if (templateType === 'community_summary') {
-    renderCommunitySummary(container, filtered, yearFilter);
+    renderCommunitySummary(container, filtered);
   } else {
-    renderSummaryTable(container, filtered, yearFilter, commFilter, statusFilter, dateFrom, dateTo);
+    renderSummaryTable(container, filtered);
   }
 }
 
 // ─── TEMPLATE 1: SUMMARY TABLE (A4 LANDSCAPE) ───────────────
-function renderSummaryTable(container, items, yearFilter, commFilter, statusFilter, dateFrom, dateTo) {
-  const todayTh = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
-
-  // Build filter condition text
-  const filterParts = [];
-  if (yearFilter !== 'all') filterParts.push(`ประจำปี พ.ศ. ${yearFilter}`);
-  if (commFilter !== 'all') filterParts.push(`ชุมชน: ${commFilter}`);
-  if (statusFilter !== 'all') filterParts.push(`สถานะ: ${statusFilter}`);
-  if (dateFrom && dateTo) filterParts.push(`ช่วงวันที่ ${dateFrom} ถึง ${dateTo}`);
-  else if (dateFrom) filterParts.push(`ตั้งแต่วันที่ ${dateFrom}`);
-  else if (dateTo) filterParts.push(`ถึงวันที่ ${dateTo}`);
-
-  const filterDesc = filterParts.join(' | ');
-
-  const titleYear = yearFilter !== 'all' ? ` ประจำปี พ.ศ. ${yearFilter}` : '';
-
+function renderSummaryTable(container, items) {
   const rowsHtml = items.map((p, idx) => `
     <tr>
       <td style="text-align: center;">${idx + 1}</td>
@@ -188,9 +173,8 @@ function renderSummaryTable(container, items, yearFilter, commFilter, statusFilt
     <div class="print-page">
       <div class="official-header">
         <img src="logo/ตราเทศบาลแม่สาย_พระเจ้าพรหมมหาราช_หนามากๆ.png" alt="ตราเทศบาล" class="official-seal" onerror="this.src='logo/logoicon.png'">
-        <div class="official-title">แบบสรุปข้อเสนอโครงการและปัญหาความต้องการของประชาชน${titleYear}</div>
+        <div class="official-title">แบบสรุปข้อเสนอโครงการและปัญหาความต้องการของประชาชน</div>
         <div class="official-subtitle">เทศบาลตำบลแม่สาย อำเภอแม่สาย จังหวัดเชียงราย</div>
-        <div class="official-meta">ข้อมูล ณ วันที่: ${todayTh} ${filterDesc ? `<br><b>เงื่อนไข:</b> ${filterDesc}` : ''} | จำนวนทั้งสิ้น: ${items.length} รายการ</div>
       </div>
 
       <table class="print-table">
@@ -214,21 +198,19 @@ function renderSummaryTable(container, items, yearFilter, commFilter, statusFilt
 }
 
 // ─── TEMPLATE 2: INDIVIDUAL CITIZEN FORM (A4 PORTRAIT) ───────
-function renderIndividualForms(container, items, yearFilter) {
+function renderIndividualForms(container, items) {
   if (items.length === 0) {
     container.innerHTML = '<div class="print-page portrait"><p style="text-align:center;">ไม่พบข้อมูลสำหรับพิมพ์แบบฟอร์ม</p></div>';
     return;
   }
 
-  const titleYear = yearFilter !== 'all' ? ` ประจำปี พ.ศ. ${yearFilter}` : '';
-
   container.innerHTML = items.map(p => `
     <div class="print-page portrait">
       <div class="official-header">
         <img src="logo/ตราเทศบาลแม่สาย_พระเจ้าพรหมมหาราช_หนามากๆ.png" alt="ตราเทศบาล" class="official-seal" onerror="this.src='logo/logoicon.png'">
-        <div class="official-title">แบบเสนอโครงการและปัญหาความต้องการของประชาชน${titleYear}</div>
+        <div class="official-title">แบบเสนอโครงการและปัญหาความต้องการของประชาชน</div>
         <div class="official-subtitle">เทศบาลตำบลแม่สาย อำเภอแม่สาย จังหวัดเชียงราย</div>
-        <div class="official-meta">รหัสข้อเสนอ: <strong>${p.code || '-'}</strong> | วันที่บันทึกข้อมูล: ${p.timestamp || '-'}</div>
+        <div class="official-meta">รหัสข้อเสนอ: <strong>${p.code || '-'}</strong></div>
       </div>
 
       <div class="form-box">
@@ -279,7 +261,7 @@ function renderIndividualForms(container, items, yearFilter) {
 }
 
 // ─── TEMPLATE 3: COMMUNITY BREAKDOWN SUMMARY ─────────────────
-function renderCommunitySummary(container, items, yearFilter) {
+function renderCommunitySummary(container, items) {
   const commMap = {};
   items.forEach(p => {
     const c = p.community || 'ไม่ระบุชุมชน';
@@ -296,15 +278,12 @@ function renderCommunitySummary(container, items, yearFilter) {
     </tr>
   `).join('');
 
-  const titleYear = yearFilter !== 'all' ? ` ประจำปี พ.ศ. ${yearFilter}` : '';
-
   container.innerHTML = `
     <div class="print-page portrait">
       <div class="official-header">
         <img src="logo/ตราเทศบาลแม่สาย_พระเจ้าพรหมมหาราช_หนามากๆ.png" alt="ตราเทศบาล" class="official-seal" onerror="this.src='logo/logoicon.png'">
-        <div class="official-title">รายงานสรุปจำนวนข้อเสนอโครงการแยกรายชุมชน${titleYear}</div>
+        <div class="official-title">รายงานสรุปจำนวนข้อเสนอโครงการแยกรายชุมชน</div>
         <div class="official-subtitle">เทศบาลตำบลแม่สาย อำเภอแม่สาย จังหวัดเชียงราย</div>
-        <div class="official-meta">จำนวนรวมทั้งหมด: ${items.length} รายการ</div>
       </div>
 
       <table class="print-table" style="margin-top: 1.5rem;">
