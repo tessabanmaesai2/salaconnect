@@ -34,14 +34,23 @@ async function checkMasterAuth() {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
-    if (data.success && data.user && (data.user.role === 'Super Admin' || data.user.role === 'Admin')) {
+    if (data.success && data.user && data.user.role === 'Super Admin') {
       currentMasterUser = data.user;
       showMasterDashboard();
       await loadUsers();
       await loadSecurityLogs();
       await loadBannedIps();
     } else {
+      localStorage.removeItem('sala_token');
       showMasterLogin();
+      if (data.user && data.user.role !== 'Super Admin') {
+        const errBox = document.getElementById('loginErrorMsg');
+        const errTxt = document.getElementById('loginErrorText');
+        if (errBox && errTxt) {
+          errTxt.textContent = 'ระดับ Admin ไม่มีสิทธิ์เข้าถึง sala/back (เฉพาะผู้ถือ Master Key เท่านั้น)';
+          errBox.style.display = 'flex';
+        }
+      }
     }
   } catch (e) {
     showMasterLogin();

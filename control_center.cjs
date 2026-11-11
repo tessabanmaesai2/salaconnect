@@ -611,8 +611,24 @@ const server = http.createServer(async (req, res) => {
 
                 let matchedAdminUser = null;
                 if (!isMasterKeyMatch) {
+                    // DEC-027: Block Admin and Officer roles from entering sala/back
+                    const isNonSuperAdmin = state.users.find(u => 
+                        u.role !== 'Super Admin' &&
+                        (
+                            (u.username && u.username.toLowerCase() === uLower) || 
+                            (u.name && u.name.trim().toLowerCase() === uLower) ||
+                            (u.name && u.name.trim() === username)
+                        ) &&
+                        verifyPassword(pClean, u.password)
+                    );
+                    if (isNonSuperAdmin) {
+                        logSecurity('UNAUTHORIZED_BACK_OFFICE_ATTEMPT', username, req, `บัญชี [${username}] ระดับ ${isNonSuperAdmin.role} พยายามเข้าสู่ระบบหลังบ้าน sala/back แต่ถูกปฏิเสธ (DEC-027)`);
+                        return sendError(res, 403, 'ระดับ Admin ไม่มีสิทธิ์เข้าถึง sala/back (เฉพาะผู้ถือ Master Key เท่านั้น)');
+                    }
+
+                    // Only Super Admin accounts in database are permitted
                     matchedAdminUser = state.users.find(u => 
-                        (u.role === 'Admin' || u.role === 'Super Admin') &&
+                        u.role === 'Super Admin' &&
                         (
                             (u.username && u.username.toLowerCase() === uLower) || 
                             (u.name && u.name.trim().toLowerCase() === uLower) ||
@@ -1056,12 +1072,12 @@ const server = http.createServer(async (req, res) => {
                 return sendJson(res, 200, { success: true, message: 'ลบข่าวสำเร็จ' });
             }
 
-            // ─── USER & ID MANAGEMENT ──────────────────────────────
-            // GET /api/users (Admin only)
+            // ─── USER & ID MANAGEMENT (DEC-027: Master Key / Super Admin ONLY) ─
+            // GET /api/users (Master Key only)
             if (apiPath === '/users' && req.method === 'GET') {
                 const currentUser = getSessionUser(req);
-                if (!currentUser || (currentUser.role !== 'Admin' && currentUser.role !== 'Super Admin')) {
-                    return sendError(res, 403, 'สิทธิ์ไม่เพียงพอสำหรับดูรายชื่อผู้ใช้');
+                if (!currentUser || currentUser.role !== 'Super Admin') {
+                    return sendError(res, 403, 'ระดับ Admin ไม่มีสิทธิ์เข้าถึงส่วนนี้ (เฉพาะผู้ถือ Master Key เท่านั้น)');
                 }
 
                 const safeUsers = state.users.map(u => ({
@@ -1076,11 +1092,11 @@ const server = http.createServer(async (req, res) => {
                 return sendJson(res, 200, { success: true, data: safeUsers });
             }
 
-            // POST /api/users (Admin only)
+            // POST /api/users (Master Key only)
             if (apiPath === '/users' && req.method === 'POST') {
                 const currentUser = getSessionUser(req);
-                if (!currentUser || (currentUser.role !== 'Admin' && currentUser.role !== 'Super Admin')) {
-                    return sendError(res, 403, 'สิทธิ์ไม่เพียงพอสร้างผู้ใช้');
+                if (!currentUser || currentUser.role !== 'Super Admin') {
+                    return sendError(res, 403, 'ระดับ Admin ไม่มีสิทธิ์เข้าถึงส่วนนี้ (เฉพาะผู้ถือ Master Key เท่านั้น)');
                 }
 
                 const body = await parseBody(req);
@@ -1116,11 +1132,11 @@ const server = http.createServer(async (req, res) => {
                 });
             }
 
-            // PUT /api/users/:id (Admin only)
+            // PUT /api/users/:id (Master Key only)
             if (apiPath.startsWith('/users/') && req.method === 'PUT') {
                 const currentUser = getSessionUser(req);
-                if (!currentUser || (currentUser.role !== 'Admin' && currentUser.role !== 'Super Admin')) {
-                    return sendError(res, 403, 'สิทธิ์ไม่เพียงพอแก้ไขผู้ใช้');
+                if (!currentUser || currentUser.role !== 'Super Admin') {
+                    return sendError(res, 403, 'ระดับ Admin ไม่มีสิทธิ์เข้าถึงส่วนนี้ (เฉพาะผู้ถือ Master Key เท่านั้น)');
                 }
 
                 const id = parseInt(apiPath.split('/')[2], 10);
@@ -1152,11 +1168,11 @@ const server = http.createServer(async (req, res) => {
                 return sendJson(res, 200, { success: true, message: 'บันทึกข้อมูลผู้ใช้เรียบร้อย' });
             }
 
-            // DELETE /api/users/:id (Admin only)
+            // DELETE /api/users/:id (Master Key only)
             if (apiPath.startsWith('/users/') && req.method === 'DELETE') {
                 const currentUser = getSessionUser(req);
-                if (!currentUser || (currentUser.role !== 'Admin' && currentUser.role !== 'Super Admin')) {
-                    return sendError(res, 403, 'สิทธิ์ไม่เพียงพอลบผู้ใช้');
+                if (!currentUser || currentUser.role !== 'Super Admin') {
+                    return sendError(res, 403, 'ระดับ Admin ไม่มีสิทธิ์เข้าถึงส่วนนี้ (เฉพาะผู้ถือ Master Key เท่านั้น)');
                 }
 
                 const id = parseInt(apiPath.split('/')[2], 10);
@@ -1174,11 +1190,11 @@ const server = http.createServer(async (req, res) => {
                 return sendJson(res, 200, { success: true, message: 'ลบผู้ใช้สำเร็จ' });
             }
 
-            // GET /api/logs (Security audit trail)
+            // GET /api/logs (Master Key only)
             if (apiPath === '/logs' && req.method === 'GET') {
                 const currentUser = getSessionUser(req);
-                if (!currentUser || (currentUser.role !== 'Admin' && currentUser.role !== 'Super Admin')) {
-                    return sendError(res, 403, 'สิทธิ์ไม่เพียงพอเข้าถึงบันทึกความปลอดภัย');
+                if (!currentUser || currentUser.role !== 'Super Admin') {
+                    return sendError(res, 403, 'ระดับ Admin ไม่มีสิทธิ์เข้าถึงส่วนนี้ (เฉพาะผู้ถือ Master Key เท่านั้น)');
                 }
                 return sendJson(res, 200, { success: true, data: state.securityLogs.slice(0, 300) });
             }
