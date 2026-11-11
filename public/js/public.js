@@ -605,8 +605,8 @@ function filterHistory() {
 }
 
 function getStatusBadge(status) {
-  let norm = status || 'เข้าระบบแล้ว';
-  if (norm === 'รอดำเนินการ') norm = 'เข้าระบบแล้ว';
+  let norm = status || 'เสนอเรื่องเข้ามา';
+  if (norm === 'รอดำเนินการ' || norm === 'เข้าระบบแล้ว') norm = 'เสนอเรื่องเข้ามา';
   if (norm === 'บรรจุในแผนชุมชน') norm = 'บรรจุในแผน';
 
   let cls = 'badge-pending';

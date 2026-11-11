@@ -617,8 +617,8 @@ const server = http.createServer(async (req, res) => {
                 state.settings.communities.forEach(c => stats.byCommunity[c] = 0);
 
                 state.proposals.forEach(p => {
-                    let s = p.status || 'เข้าระบบแล้ว';
-                    if (s === 'รอดำเนินการ') s = 'เข้าระบบแล้ว';
+                    let s = p.status || 'เสนอเรื่องเข้ามา';
+                    if (s === 'รอดำเนินการ' || s === 'เข้าระบบแล้ว') s = 'เสนอเรื่องเข้ามา';
                     if (s === 'บรรจุในแผนชุมชน') s = 'บรรจุในแผน';
                     stats.byStatus[s] = (stats.byStatus[s] || 0) + 1;
 
@@ -785,7 +785,7 @@ const server = http.createServer(async (req, res) => {
                     gps_lat: body.gps_lat ? String(body.gps_lat).slice(0, 20) : null,
                     gps_lng: body.gps_lng ? String(body.gps_lng).slice(0, 20) : null,
                     department: body.department || 'กองช่าง',
-                    status: (body.status === 'รอดำเนินการ') ? 'เข้าระบบแล้ว' : ((body.status === 'บรรจุในแผนชุมชน') ? 'บรรจุในแผน' : (body.status || 'เข้าระบบแล้ว')),
+                    status: (body.status === 'รอดำเนินการ' || body.status === 'เข้าระบบแล้ว') ? 'เสนอเรื่องเข้ามา' : ((body.status === 'บรรจุในแผนชุมชน') ? 'บรรจุในแผน' : (body.status || 'เสนอเรื่องเข้ามา')),
                     reject_reason: body.reject_reason || body.notes || '',
                     pdpa_consent: body.pdpa_consent === true || body.pdpa_consent === 'true',
                     pdpa_timestamp: now.toISOString(),
@@ -816,7 +816,7 @@ const server = http.createServer(async (req, res) => {
                 const existing = state.proposals[index];
 
                 let updatedStatus = body.status !== undefined ? body.status : existing.status;
-                if (updatedStatus === 'รอดำเนินการ') updatedStatus = 'เข้าระบบแล้ว';
+                if (updatedStatus === 'รอดำเนินการ' || updatedStatus === 'เข้าระบบแล้ว') updatedStatus = 'เสนอเรื่องเข้ามา';
                 if (updatedStatus === 'บรรจุในแผนชุมชน') updatedStatus = 'บรรจุในแผน';
 
                 const updatedRejectReason = body.reject_reason !== undefined ? body.reject_reason : (body.notes !== undefined ? body.notes : (existing.reject_reason || ''));

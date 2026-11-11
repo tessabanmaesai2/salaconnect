@@ -249,8 +249,8 @@ function updateKpiCards() {
   let pending = 0, review = 0, inPlan = 0, completed = 0, rejected = 0;
 
   allProposals.forEach(p => {
-    let s = p.status || 'เข้าระบบแล้ว';
-    if (s === 'รอดำเนินการ') s = 'เข้าระบบแล้ว';
+    let s = p.status || 'เสนอเรื่องเข้ามา';
+    if (s === 'รอดำเนินการ' || s === 'เข้าระบบแล้ว') s = 'เสนอเรื่องเข้ามา';
     if (s === 'บรรจุในแผนชุมชน') s = 'บรรจุในแผน';
 
     if (s.includes('สำเร็จ') || s.includes('แล้วเสร็จ')) completed++;
@@ -289,7 +289,7 @@ function setFilterStatus(status) {
     document.getElementById('manageStatusFilter').value = 'ไม่สามารถดำเนินการได้';
   } else {
     document.getElementById('kpiPending').classList.add('active-filter');
-    document.getElementById('manageStatusFilter').value = 'เข้าระบบแล้ว';
+    document.getElementById('manageStatusFilter').value = 'เสนอเรื่องเข้ามา';
   }
 
   filterTable();
@@ -336,12 +336,12 @@ function filterTable() {
 
     // Status filter (with backward compatibility normalization)
     if (statusFilter !== 'all') {
-      let pNorm = p.status || 'เข้าระบบแล้ว';
-      if (pNorm === 'รอดำเนินการ') pNorm = 'เข้าระบบแล้ว';
+      let pNorm = p.status || 'เสนอเรื่องเข้ามา';
+      if (pNorm === 'รอดำเนินการ' || pNorm === 'เข้าระบบแล้ว') pNorm = 'เสนอเรื่องเข้ามา';
       if (pNorm === 'บรรจุในแผนชุมชน') pNorm = 'บรรจุในแผน';
 
       let fNorm = statusFilter;
-      if (fNorm === 'รอดำเนินการ') fNorm = 'เข้าระบบแล้ว';
+      if (fNorm === 'รอดำเนินการ' || fNorm === 'เข้าระบบแล้ว') fNorm = 'เสนอเรื่องเข้ามา';
       if (fNorm === 'บรรจุในแผนชุมชน') fNorm = 'บรรจุในแผน';
 
       if (pNorm !== fNorm && p.status !== statusFilter) return false;
@@ -380,8 +380,8 @@ function renderTable(list) {
   }
 
   tbody.innerHTML = list.map(p => {
-    let normStatus = p.status || 'เข้าระบบแล้ว';
-    if (normStatus === 'รอดำเนินการ') normStatus = 'เข้าระบบแล้ว';
+    let normStatus = p.status || 'เสนอเรื่องเข้ามา';
+    if (normStatus === 'รอดำเนินการ' || normStatus === 'เข้าระบบแล้ว') normStatus = 'เสนอเรื่องเข้ามา';
     if (normStatus === 'บรรจุในแผนชุมชน') normStatus = 'บรรจุในแผน';
 
     const reasonText = p.reject_reason || p.notes || '';
@@ -426,7 +426,7 @@ function renderTable(list) {
       </td>
       <td style="text-align: center;">
         <select class="select-status-inline" onchange="changeStatusInline(${p.id}, this.value)">
-          <option value="เข้าระบบแล้ว" ${normStatus === 'เข้าระบบแล้ว' ? 'selected' : ''}>เข้าระบบแล้ว</option>
+          <option value="เสนอเรื่องเข้ามา" ${normStatus === 'เสนอเรื่องเข้ามา' ? 'selected' : ''}>เสนอเรื่องเข้ามา</option>
           <option value="อยู่ระหว่างพิจารณา" ${normStatus === 'อยู่ระหว่างพิจารณา' ? 'selected' : ''}>อยู่ระหว่างพิจารณา</option>
           <option value="บรรจุในแผน" ${normStatus === 'บรรจุในแผน' ? 'selected' : ''}>บรรจุในแผน</option>
           <option value="ดำเนินการแล้วเสร็จ" ${normStatus === 'ดำเนินการแล้วเสร็จ' ? 'selected' : ''}>ดำเนินการแล้วเสร็จ</option>
@@ -503,7 +503,149 @@ async function changeStatusInline(id, newStatus) {
   }
 }
 
-// ─── ADD / EDIT MODAL ────────────────────────────────────────
+// ─── ADD / EDIT MODAL & ATTACHMENTS ─────────────────────────
+let staffPhotoBase64 = null;
+
+function triggerStaffCamera() {
+  const el = document.getElementById('staffCameraInput');
+  if (el) el.click();
+}
+
+function triggerStaffGallery() {
+  const el = document.getElementById('staffGalleryInput');
+  if (el) el.click();
+}
+
+function handleStaffPhotoSelect(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  if (!file.type.startsWith('image/')) {
+    showToast('กรุณาเลือกไฟล์รูปภาพเท่านั้น (JPG, PNG, WebP)', 'error');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const rawData = e.target.result;
+    const img = new Image();
+    img.onload = function() {
+      // Resize to standard 1280px max for municipal fast load
+      const maxDim = 1280;
+      let w = img.width;
+      let h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+
+      staffPhotoBase64 = canvas.toDataURL('image/jpeg', 0.82);
+      const sizeKB = Math.round((staffPhotoBase64.length * 3 / 4) / 1024);
+      renderStaffPhotoPreview(staffPhotoBase64, `${w}×${h}px • ${sizeKB} KB`);
+      showToast('แนบรูปถ่ายเรียบร้อยแล้ว', 'success');
+    };
+    img.src = rawData;
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderStaffPhotoPreview(src, sizeInfo) {
+  const area = document.getElementById('editPhotoPreviewArea');
+  if (!area) return;
+  if (!src) {
+    area.innerHTML = '<span style="font-size: 0.78rem; color: var(--slate-400);">ยังไม่มีรูปภาพ</span>';
+    return;
+  }
+
+  area.innerHTML = `
+    <div style="display: flex; align-items: center; gap: 10px; width: 100%;">
+      <a href="${src}" target="_blank" title="คลิกดูภาพขยาย">
+        <img src="${src}" alt="ภาพสภาพปัญหา" style="width: 60px; height: 60px; object-fit: cover; border-radius: 6px; border: 1px solid var(--slate-300);">
+      </a>
+      <div style="flex: 1; min-width: 0;">
+        <div style="font-size: 0.8rem; font-weight: 600; color: var(--slate-800);">มีรูปภาพแนบแล้ว</div>
+        <div style="font-size: 0.72rem; color: var(--success); font-weight: 500;">${sizeInfo || 'พร้อมบันทึก'}</div>
+      </div>
+      <button type="button" class="btn-sub-action danger" style="padding: 4px 8px; font-size: 0.75rem;" onclick="removeStaffPhoto()" title="ลบรูปถ่าย">
+        <i class="fas fa-trash-alt"></i> ลบรูป
+      </button>
+    </div>
+  `;
+}
+
+function removeStaffPhoto() {
+  staffPhotoBase64 = ''; // explicit empty to indicate removal
+  const cIn = document.getElementById('staffCameraInput');
+  const gIn = document.getElementById('staffGalleryInput');
+  if (cIn) cIn.value = '';
+  if (gIn) gIn.value = '';
+  renderStaffPhotoPreview('', '');
+  showToast('ลบรูปภาพแล้ว', 'info');
+}
+
+function getStaffGpsLocation() {
+  if (!navigator.geolocation) {
+    showToast('เบราว์เซอร์ไม่รองรับการดึงพิกัด GPS', 'error');
+    return;
+  }
+
+  showToast('กำลังค้นหาพิกัด GPS ปัจจุบัน...', 'info');
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      document.getElementById('editGpsLat').value = lat;
+      document.getElementById('editGpsLng').value = lng;
+      updateStaffGpsPreview();
+      showToast(`ดึงพิกัด GPS สำเร็จ: ${lat}, ${lng}`, 'success');
+    },
+    err => {
+      showToast('ไม่สามารถดึงพิกัด GPS ได้ (กรุณาอนุญาตการเข้าถึงตำแหน่ง)', 'error');
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+function updateStaffGpsPreview() {
+  const lat = document.getElementById('editGpsLat')?.value.trim();
+  const lng = document.getElementById('editGpsLng')?.value.trim();
+  const area = document.getElementById('editGpsPreviewArea');
+  if (!area) return;
+
+  if (lat && lng) {
+    area.innerHTML = `
+      <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+        <span style="font-size: 0.75rem; color: var(--slate-700);">
+          <i class="fas fa-check-circle text-success me-1"></i> พิกัด: <code>${lat}, ${lng}</code>
+        </span>
+        <a href="https://www.google.com/maps?q=${lat},${lng}" target="_blank" class="btn-sub-action" style="padding: 2px 8px; font-size: 0.72rem; text-decoration: none;">
+          <i class="fas fa-external-link-alt"></i> แผนที่
+        </a>
+      </div>
+    `;
+  } else {
+    area.innerHTML = '<span style="color: var(--slate-400);">ยังไม่ได้ระบุพิกัด</span>';
+  }
+}
+
+function removeStaffGpsLocation() {
+  if (document.getElementById('editGpsLat')) document.getElementById('editGpsLat').value = '';
+  if (document.getElementById('editGpsLng')) document.getElementById('editGpsLng').value = '';
+  updateStaffGpsPreview();
+  showToast('ลบพิกัด GPS แล้ว', 'info');
+}
+
 function handleModalStatusChange(val) {
   const group = document.getElementById('groupRejectReason');
   if (group) {
@@ -515,14 +657,15 @@ function openAddModal() {
   document.getElementById('modalTitle').textContent = 'เพิ่มข้อเสนอโครงการใหม่ (เจ้าหน้าที่)';
   document.getElementById('editId').value = '';
   document.getElementById('formEdit').reset();
-  document.getElementById('editStatus').value = 'เข้าระบบแล้ว';
+  document.getElementById('editStatus').value = 'เสนอเรื่องเข้ามา';
   document.getElementById('editRejectReason').value = '';
-  handleModalStatusChange('เข้าระบบแล้ว');
+  handleModalStatusChange('เสนอเรื่องเข้ามา');
 
-  const photoArea = document.getElementById('editPhotoPreviewArea');
-  const gpsArea = document.getElementById('editGpsPreviewArea');
-  if (photoArea) photoArea.innerHTML = '<span style="font-size: 0.8rem; color: var(--slate-400);">ไม่มีรูปภาพแนบ</span>';
-  if (gpsArea) gpsArea.innerHTML = '<span style="font-size: 0.8rem; color: var(--slate-400);">ไม่มีพิกัด GPS แนบ</span>';
+  staffPhotoBase64 = null;
+  renderStaffPhotoPreview('', '');
+  if (document.getElementById('editGpsLat')) document.getElementById('editGpsLat').value = '';
+  if (document.getElementById('editGpsLng')) document.getElementById('editGpsLng').value = '';
+  updateStaffGpsPreview();
 
   document.getElementById('editModal').classList.add('active');
 }
@@ -542,43 +685,26 @@ function openEditModal(id) {
   document.getElementById('editSolution').value = p.solution || '';
   document.getElementById('editLocation').value = p.location || '';
 
-  let normStatus = p.status || 'เข้าระบบแล้ว';
-  if (normStatus === 'รอดำเนินการ') normStatus = 'เข้าระบบแล้ว';
+  let normStatus = p.status || 'เสนอเรื่องเข้ามา';
+  if (normStatus === 'รอดำเนินการ' || normStatus === 'เข้าระบบแล้ว') normStatus = 'เสนอเรื่องเข้ามา';
   if (normStatus === 'บรรจุในแผนชุมชน') normStatus = 'บรรจุในแผน';
 
   document.getElementById('editStatus').value = normStatus;
   document.getElementById('editRejectReason').value = p.reject_reason || p.notes || '';
   handleModalStatusChange(normStatus);
 
-  const photoArea = document.getElementById('editPhotoPreviewArea');
-  const gpsArea = document.getElementById('editGpsPreviewArea');
-  if (photoArea) {
-    if (p.photo) {
-      photoArea.innerHTML = `
-        <div style="font-size: 0.8rem; margin-bottom: 4px;"><b>รูปถ่ายสภาพปัญหา:</b></div>
-        <a href="${p.photo}" target="_blank" title="คลิกเพื่อดูรูปขนาดเต็ม">
-          <img src="${p.photo}" alt="รูปถ่าย" style="max-height: 120px; max-width: 100%; object-fit: contain; border-radius: 4px; border: 1px solid #ccc;">
-        </a>
-      `;
-    } else {
-      photoArea.innerHTML = '<span style="font-size: 0.8rem; color: var(--slate-400);">ไม่มีรูปภาพแนบ</span>';
-    }
+  // Load Photo
+  staffPhotoBase64 = null; // null means do not change unless user modifies
+  if (p.photo) {
+    renderStaffPhotoPreview(p.photo, 'รูปภาพเดิมที่บันทึกไว้');
+  } else {
+    renderStaffPhotoPreview('', '');
   }
 
-  if (gpsArea) {
-    if (p.gps_lat && p.gps_lng) {
-      gpsArea.innerHTML = `
-        <div style="margin-top: 4px; display: flex; align-items: center; justify-content: space-between;">
-          <span><b>พิกัด GPS:</b> <code>${p.gps_lat}, ${p.gps_lng}</code></span>
-          <a href="https://www.google.com/maps?q=${p.gps_lat},${p.gps_lng}" target="_blank" class="btn-attach" style="padding: 2px 8px; font-size: 0.75rem; text-decoration: none;">
-            <i class="fas fa-map"></i> ดูใน Google Maps
-          </a>
-        </div>
-      `;
-    } else {
-      gpsArea.innerHTML = '<div style="margin-top: 4px; font-size: 0.8rem; color: var(--slate-400);">ไม่มีพิกัด GPS แนบ</div>';
-    }
-  }
+  // Load GPS
+  if (document.getElementById('editGpsLat')) document.getElementById('editGpsLat').value = p.gps_lat || '';
+  if (document.getElementById('editGpsLng')) document.getElementById('editGpsLng').value = p.gps_lng || '';
+  updateStaffGpsPreview();
 
   document.getElementById('editModal').classList.add('active');
 }
@@ -607,8 +733,15 @@ async function saveProposal(e) {
     location: document.getElementById('editLocation').value.trim(),
     status: statusVal,
     reject_reason: rejectReasonVal,
-    notes: rejectReasonVal
+    notes: rejectReasonVal,
+    gps_lat: document.getElementById('editGpsLat')?.value.trim() || null,
+    gps_lng: document.getElementById('editGpsLng')?.value.trim() || null
   };
+
+  // If photo was explicitly changed or added
+  if (staffPhotoBase64 !== null) {
+    payload.photo = staffPhotoBase64;
+  }
 
   const btn = document.getElementById('btnSaveProposal');
   btn.disabled = true;

@@ -56,8 +56,11 @@
         <a href="/sala/manage" class="btn-header">
           <i class="fas fa-arrow-left"></i> กลับหน้าจัดการ (/manage)
         </a>
+        <button type="button" class="btn-header" onclick="exportPDF()" style="background: rgba(255,255,255,0.18); color: white; border: 1px solid rgba(255,255,255,0.35);">
+          <i class="fas fa-file-pdf"></i> ส่งออกเป็น PDF (Export PDF)
+        </button>
         <button type="button" class="btn-header btn-header-gold" onclick="window.print()">
-          <i class="fas fa-print"></i> สั่งพิมพ์ (Print / PDF)
+          <i class="fas fa-print"></i> สั่งพิมพ์ (Print)
         </button>
       </div>
     </div>
@@ -78,7 +81,9 @@
         <div class="filter-item" style="grid-column: span 1;">
           <label>รูปแบบรายงาน</label>
           <select id="reportTemplateSelect" onchange="renderSelectedTemplate()">
-            <option value="summary_table">ตารางสรุปข้อเสนอทั้งหมด (A4 แนวนอน)</option>
+            <option value="summary_table">ตารางสรุปข้อเสนอ (A4 แนวนอน)</option>
+            <option value="summary_with_photos">ตารางสรุป + ภาคผนวกภาพถ่ายและรายละเอียด (แยกหน้า)</option>
+            <option value="photo_appendix">เฉพาะภาคผนวกภาพถ่ายและรายละเอียดสภาพปัญหา (A4 แยกจากตาราง)</option>
             <option value="individual_form">แบบเสนอโครงการรายบุคคล (A4 แนวตั้ง)</option>
             <option value="community_summary">สรุปจำนวนแยกรายชุมชน (A4 แนวตั้ง)</option>
           </select>
@@ -122,6 +127,29 @@
           <button type="button" class="pill-btn" onclick="resetPrintFilters()" style="padding: 7px 12px; height: 35px; width: 100%;">
             <i class="fas fa-undo"></i> ล้างตัวกรอง
           </button>
+        </div>
+
+        <!-- 📑 Comprehensive Item-by-item Selection Bar (Screen Only) -->
+        <div class="filter-item no-print" style="grid-column: 1 / -1; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--slate-200); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
+          <div style="display: flex; align-items: center; gap: 14px; flex-wrap: wrap;">
+            <label style="display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.88rem; font-weight: 700; color: var(--primary-dark);">
+              <input type="checkbox" id="chkIncludePhotos" onchange="toggleIncludePhotos(this.checked)" checked style="width: 17px; height: 17px; accent-color: var(--primary); cursor: pointer;">
+              <span>รวมหน้าภาคผนวกภาพถ่ายและรายละเอียด (พิมพ์แยกหน้าอัตโนมัติ)</span>
+            </label>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span style="font-size: 0.85rem; color: var(--slate-600); font-weight: 600;">เลือกพิมพ์เฉพาะข้อ:</span>
+            <button type="button" class="pill-btn" onclick="selectAllItems(true)" style="padding: 4px 10px; font-size: 0.8rem; background: #f3e8ff; border-color: var(--primary-light); color: var(--primary-dark);">
+              <i class="fas fa-check-square"></i> เลือกทั้งหมด
+            </button>
+            <button type="button" class="pill-btn" onclick="selectAllItems(false)" style="padding: 4px 10px; font-size: 0.8rem;">
+              <i class="far fa-square"></i> ปลดเลือกทั้งหมด
+            </button>
+            <span id="selectionSummaryBadge" style="font-size: 0.82rem; font-weight: 700; background: #e0f2fe; color: #0369a1; padding: 4px 10px; border-radius: 9999px;">
+              เลือกแล้ว 0/0 รายการ
+            </span>
+          </div>
         </div>
       </div>
     </div>

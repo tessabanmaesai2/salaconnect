@@ -97,12 +97,12 @@
         </div>
         <i class="fas fa-folder-open" style="font-size: 24px; color: var(--primary);"></i>
       </div>
-      <div class="kpi-card" id="kpiPending" onclick="setFilterStatus('เข้าระบบแล้ว')">
+      <div class="kpi-card" id="kpiPending" onclick="setFilterStatus('เสนอเรื่องเข้ามา')">
         <div>
-          <div class="kpi-title">เข้าระบบแล้ว</div>
+          <div class="kpi-title">เสนอเรื่องเข้ามา</div>
           <div class="kpi-val" id="countPending" style="color: var(--warning);">0</div>
         </div>
-        <i class="fas fa-clock" style="font-size: 24px; color: var(--warning);"></i>
+        <i class="fas fa-inbox" style="font-size: 24px; color: var(--warning);"></i>
       </div>
       <div class="kpi-card" id="kpiReview" onclick="setFilterStatus('อยู่ระหว่างพิจารณา')">
         <div>
@@ -164,7 +164,7 @@
 
           <select id="manageStatusFilter" class="v3-input" style="width: 155px; padding: 6px 10px; font-size: 0.85rem;" onchange="filterTable()">
             <option value="all">ทุกสถานะ</option>
-            <option value="เข้าระบบแล้ว">เข้าระบบแล้ว</option>
+            <option value="เสนอเรื่องเข้ามา">เสนอเรื่องเข้ามา</option>
             <option value="อยู่ระหว่างพิจารณา">อยู่ระหว่างพิจารณา</option>
             <option value="บรรจุในแผน">บรรจุในแผน</option>
             <option value="ดำเนินการแล้วเสร็จ">ดำเนินการแล้วเสร็จ</option>
@@ -282,7 +282,7 @@
         <div class="form-group" style="background: #f5f3ff; padding: 12px; border-radius: var(--radius-md); border: 1.5px solid var(--primary-light);">
           <label class="form-label" style="color: var(--primary-dark); font-weight: 700;">สถานะโครงการ</label>
           <select id="editStatus" class="v3-input" style="font-weight: 600; border-color: var(--primary);" onchange="handleModalStatusChange(this.value)">
-            <option value="เข้าระบบแล้ว">เข้าระบบแล้ว</option>
+            <option value="เสนอเรื่องเข้ามา">เสนอเรื่องเข้ามา (เรื่องใหม่จากประชาชน)</option>
             <option value="อยู่ระหว่างพิจารณา">อยู่ระหว่างพิจารณา</option>
             <option value="บรรจุในแผน">บรรจุในแผน</option>
             <option value="ดำเนินการแล้วเสร็จ">ดำเนินการแล้วเสร็จ</option>
@@ -297,12 +297,63 @@
           <textarea id="editRejectReason" class="v3-input" rows="2" placeholder="ระบุเหตุผล เช่น ส่งต่อหน่วยงานภายนอก (แขวงทางหลวงชนบท / การไฟฟ้า), อยู่นอกเหนืออำนาจหน้าที่ของเทศบาล ฯลฯ"></textarea>
         </div>
 
-        <div class="form-group" id="groupAttachedAssets" style="background: #f8fafc; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--slate-200);">
-          <label class="form-label" style="font-weight: 700; color: var(--slate-700);">
-            <i class="fas fa-paperclip"></i> ข้อมูลภาพถ่ายและพิกัดแผนที่ (ถ้ามี)
-          </label>
-          <div id="editPhotoPreviewArea" style="margin-bottom: 8px;"></div>
-          <div id="editGpsPreviewArea" style="font-size: 0.82rem; color: var(--slate-600);"></div>
+        <!-- 📷 & 📍 Staff Attachments (Photo & GPS Location) -->
+        <div class="form-group" id="groupAttachedAssets" style="background: #f8fafc; padding: 14px; border-radius: var(--radius-md); border: 1.5px dashed var(--primary-light);">
+          <div style="font-weight: 700; color: var(--primary-dark); font-size: 0.95rem; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="fas fa-paperclip"></i> แนบรูปถ่ายสภาพปัญหาและพิกัด GPS</span>
+            <span style="font-size: 0.75rem; color: var(--slate-500); font-weight: 400;">ฟังก์ชันเทียบเท่าโหมดประชาชน</span>
+          </div>
+
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px;">
+            <!-- 1. Photo Section -->
+            <div style="background: #ffffff; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--slate-200);">
+              <label class="form-label" style="font-size: 0.82rem; margin-bottom: 6px; font-weight: 700;">
+                <i class="fas fa-camera text-primary"></i> รูปถ่ายสภาพปัญหา
+              </label>
+              
+              <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                <button type="button" class="btn-sub-action" onclick="triggerStaffCamera()" style="flex: 1; padding: 6px 8px; font-size: 0.8rem;">
+                  <i class="fas fa-camera"></i> ถ่ายรูป
+                </button>
+                <button type="button" class="btn-sub-action" onclick="triggerStaffGallery()" style="flex: 1; padding: 6px 8px; font-size: 0.8rem;">
+                  <i class="fas fa-image"></i> เลือกไฟล์
+                </button>
+              </div>
+
+              <input type="file" id="staffCameraInput" accept="image/*" capture="environment" style="display:none;" onchange="handleStaffPhotoSelect(event)">
+              <input type="file" id="staffGalleryInput" accept="image/*" style="display:none;" onchange="handleStaffPhotoSelect(event)">
+              <input type="hidden" id="editPhotoData" value="">
+
+              <div id="editPhotoPreviewArea" style="min-height: 40px; display: flex; align-items: center; justify-content: center; background: #f8fafc; border-radius: 4px; border: 1px dashed #cbd5e1; padding: 6px;">
+                <span style="font-size: 0.78rem; color: var(--slate-400);">ยังไม่มีรูปภาพ</span>
+              </div>
+            </div>
+
+            <!-- 2. GPS Section -->
+            <div style="background: #ffffff; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--slate-200);">
+              <label class="form-label" style="font-size: 0.82rem; margin-bottom: 6px; font-weight: 700;">
+                <i class="fas fa-map-marker-alt text-primary"></i> พิกัดแผนที่ (GPS)
+              </label>
+
+              <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+                <button type="button" class="btn-sub-action" onclick="getStaffGpsLocation()" style="flex: 1; padding: 6px 8px; font-size: 0.8rem;">
+                  <i class="fas fa-crosshairs"></i> ดึงพิกัดปัจจุบัน
+                </button>
+                <button type="button" class="btn-sub-action danger" onclick="removeStaffGpsLocation()" style="padding: 6px 10px; font-size: 0.8rem;" title="ลบพิกัด">
+                  <i class="fas fa-trash-alt"></i>
+                </button>
+              </div>
+
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px;">
+                <input type="text" id="editGpsLat" class="v3-input" placeholder="Latitude" style="font-size: 0.78rem; padding: 4px 6px;" oninput="updateStaffGpsPreview()">
+                <input type="text" id="editGpsLng" class="v3-input" placeholder="Longitude" style="font-size: 0.78rem; padding: 4px 6px;" oninput="updateStaffGpsPreview()">
+              </div>
+
+              <div id="editGpsPreviewArea" style="font-size: 0.78rem; color: var(--slate-600); min-height: 24px; display: flex; align-items: center;">
+                <span style="color: var(--slate-400);">ยังไม่ได้ระบุพิกัด</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div style="display: flex; gap: 10px; margin-top: 20px;">
