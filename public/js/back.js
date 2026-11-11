@@ -244,7 +244,7 @@ function renderUsersTable(list) {
   }
 
   tbody.innerHTML = list.map(u => {
-    const isMaster = (u.id === 1 || u.role === 'Super Admin' || u.username === 'thedatazero');
+    const isMaster = (u.id === 1 || u.role === 'Super Admin' || u.is_master);
     return `
       <tr style="${isMaster ? 'background: #fffdf5;' : ''}">
         <td style="text-align: center; font-weight: 700; color: var(--slate-400);">${u.id}</td>
@@ -299,7 +299,7 @@ function openEditUserModal(id) {
   const u = allMasterUsers.find(item => item.id === id);
   if (!u) return;
 
-  if (u.id === 1 || u.role === 'Super Admin' || u.username === 'thedatazero') {
+  if (u.id === 1 || u.role === 'Super Admin' || u.is_master) {
     showToast('บัญชี Master Key เป็นรากฐานของระบบ ล็อกถาวรเพื่อความปลอดภัย ไม่สามารถแก้ไขหรือลบผ่านหน้าเว็บได้', 'warning');
     return;
   }
@@ -364,7 +364,7 @@ async function saveUserAccount(e) {
 }
 
 async function deleteUserAccount(id, username) {
-  if (id === 1 || username === 'thedatazero') {
+  if (id === 1) {
     showToast('ไม่อนุญาตให้ลบบัญชี Master Key ของระบบ', 'error');
     return;
   }
