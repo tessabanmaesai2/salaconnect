@@ -5,3 +5,5 @@ Thumbs.db
 .ai_temp/
 data/backups/
 data/security_logs.json
+public/uploads/*
+!public/uploads/.gitkeep

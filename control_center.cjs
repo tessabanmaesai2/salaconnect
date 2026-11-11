@@ -21,13 +21,14 @@ const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const SETTINGS_FILE = path.join(DATA_DIR, 'settings.json');
 const NEWS_FILE = path.join(DATA_DIR, 'news.json');
 const SECURITY_LOGS_FILE = path.join(DATA_DIR, 'security_logs.json');
+const UPLOADS_DIR = path.join(PUBLIC_DIR, 'uploads');
 
 // Master Credentials Standard across Municipal Systems
 const MASTER_KEY = process.env.MASTER_KEY || 'thedatazero';
 const MASTER_PASSWORD = process.env.MASTER_PASSWORD || 'Kn123990002466119842528';
 
 // Ensure directories exist
-[DATA_DIR, BACKUPS_DIR, PUBLIC_DIR].forEach(dir => {
+[DATA_DIR, BACKUPS_DIR, PUBLIC_DIR, UPLOADS_DIR].forEach(dir => {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 });
 
@@ -40,6 +41,7 @@ const MIME_TYPES = {
     '.png': 'image/png',
     '.jpg': 'image/jpeg',
     '.jpeg': 'image/jpeg',
+    '.webp': 'image/webp',
     '.gif': 'image/gif',
     '.svg': 'image/svg+xml',
     '.ico': 'image/x-icon',
@@ -293,6 +295,82 @@ function sendError(res, statusCode, message) {
     sendJson(res, statusCode, { success: false, error: message });
 }
 
+// ─── PHOTO UPLOAD HANDLER ────────────────────────────────────
+function saveUploadedPhoto(code, base64Data) {
+    if (!base64Data || typeof base64Data !== 'string' || !base64Data.startsWith('data:image/')) {
+        return null;
+    }
+    try {
+        const matches = base64Data.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+        if (!matches || matches.length < 3) return null;
+
+        let ext = matches[1].toLowerCase();
+        if (ext === 'jpeg') ext = 'jpg';
+        if (!['jpg', 'png', 'webp', 'gif'].includes(ext)) ext = 'jpg';
+
+        const safeCode = (code || 'prop').replace(/[^a-zA-Z0-9_-]/g, '');
+        const filename = `prop_${safeCode}_${Date.now()}.${ext}`;
+        const diskPath = path.resolve(UPLOADS_DIR, filename);
+
+        // Path Traversal Security check: must reside inside UPLOADS_DIR
+        if (!diskPath.startsWith(path.resolve(UPLOADS_DIR))) {
+            console.error('[SECURITY ALERT] Path traversal attempt in image upload:', filename);
+            return null;
+        }
+
+        const buffer = Buffer.from(matches[2], 'base64');
+        if (buffer.length > 5 * 1024 * 1024) {
+            console.error('[SECURITY ALERT] Uploaded image exceeds 5MB limit');
+            return null;
+        }
+
+        fs.writeFileSync(diskPath, buffer);
+        return `uploads/${filename}`;
+    } catch (e) {
+        console.error('[UPLOAD ERROR]', e.message);
+        return null;
+    }
+}
+
+// ─── DEC-026 ANTI-SPAM & BOT RADAR ENGINE ────────────────────
+const proposalRateLimit = new Map(); // ip -> [timestamps]
+
+const SPAM_PATTERNS = [
+    /https?:\/\//i,
+    /www\./i,
+    /t\.me\//i,
+    /bit\.ly/i,
+    /tinyurl/i,
+    /slot/i,
+    /casino/i,
+    /baccarat/i,
+    /บาคาร่า/i,
+    /สล็อต/i,
+    /เว็บพนัน/i,
+    /แทงบอล/i,
+    /คาสิโน/i,
+    /เครดิตฟรี/i,
+    /ufabet/i,
+    /pgslot/i,
+    /viagra/i,
+    /crypto/i
+];
+
+function isSpamText(text) {
+    if (!text || typeof text !== 'string') return false;
+    return SPAM_PATTERNS.some(regex => regex.test(text));
+}
+
+function purgeSpamFromIp(ip, reason) {
+    const before = state.proposals.length;
+    state.proposals = state.proposals.filter(p => p.clientIp !== ip && !isSpamText(p.problem) && !isSpamText(p.solution));
+    const removed = before - state.proposals.length;
+    if (removed > 0) {
+        saveProposals();
+        logSecurity('SPAM_AUTO_PURGED', 'anti-bot-engine', null, `ตรวจพบสแปม! ลบข้อเสนอขยะทิ้งอัตโนมัติทันที ${removed} รายการ (${reason || 'Spam IP Purged'})`, 'CRITICAL');
+    }
+}
+
 // ─── ROUTER & HANDLERS ──────────────────────────────────────
 const server = http.createServer(async (req, res) => {
     // Handle CORS preflight
@@ -413,17 +491,11 @@ const server = http.createServer(async (req, res) => {
 
             // POST /api/auth/master-login (Strict: Master Key Username & Password, DEC-026 Protected)
             if (apiPath === '/auth/master-login' && req.method === 'POST') {
-                const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1').replace(/^.*:/, '');
-                const lockInfo = failedAttempts.get(clientIp);
-                if (lockInfo && lockInfo.lockedUntil && Date.now() < lockInfo.lockedUntil) {
-                    const remainingMinutes = Math.ceil((lockInfo.lockedUntil - Date.now()) / 60000);
-                    logSecurity('BRUTE_FORCE_BLOCKED', 'masterkey', req, `IP ถูกระงับชั่วคราว เหลือ ${remainingMinutes} นาที`, 'CRITICAL');
-                    return sendError(res, 429, `IP ของท่านถูกระงับชั่วคราวเนื่องจากใส่รหัสผ่านผิดเกินกำหนด กรุณารอ ${remainingMinutes} นาที`);
-                }
+                const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1').replace(/^.*:/, '').trim();
 
                 const body = await parseBody(req);
-                const username = (body.username || '').trim();
-                const password = (body.password || body.masterKey || '').trim();
+                const username = (body.username || body.master_key || body.masterKey || '').trim();
+                const password = (body.password || body.master_password || body.masterPassword || '').trim();
 
                 if (!password && !username) {
                     return sendError(res, 400, 'กรุณาระบุชื่อผู้ใช้งานและรหัสผ่าน Master Key');
@@ -460,6 +532,13 @@ const server = http.createServer(async (req, res) => {
                             role: 'Super Admin'
                         }
                     });
+                }
+
+                const lockInfo = failedAttempts.get(clientIp);
+                if (lockInfo && lockInfo.lockedUntil && Date.now() < lockInfo.lockedUntil) {
+                    const remainingMinutes = Math.ceil((lockInfo.lockedUntil - Date.now()) / 60000);
+                    logSecurity('BRUTE_FORCE_BLOCKED', 'masterkey', req, `IP ถูกระงับชั่วคราว เหลือ ${remainingMinutes} นาที`, 'CRITICAL');
+                    return sendError(res, 429, `IP ของท่านถูกระงับชั่วคราวเนื่องจากใส่รหัสผ่านผิดเกินกำหนด กรุณารอ ${remainingMinutes} นาที`);
                 } else {
                     let att = failedAttempts.get(clientIp) || { count: 0, lockedUntil: null };
                     att.count++;
@@ -565,7 +644,10 @@ const server = http.createServer(async (req, res) => {
                         solution: p.solution,
                         location: p.location,
                         status: p.status,
-                        budget: p.budget,
+                        reject_reason: p.reject_reason,
+                        photo: p.photo,
+                        gps_lat: p.gps_lat,
+                        gps_lng: p.gps_lng,
                         department: p.department
                     }));
                 }
@@ -581,9 +663,68 @@ const server = http.createServer(async (req, res) => {
                 return sendJson(res, 200, { success: true, data: proposal });
             }
 
-            // POST /api/proposals (Submit new proposal - Public or Staff)
+            // POST /api/proposals (Submit new proposal - Public or Staff, DEC-026 Anti-Spam Protected)
             if (apiPath === '/proposals' && req.method === 'POST') {
+                const clientIp = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1').replace(/^.*:/, '').trim();
+
+                // 1. Check if IP is banned in Security Radar
+                const lockInfo = failedAttempts.get(clientIp);
+                if (lockInfo && lockInfo.lockedUntil && Date.now() < lockInfo.lockedUntil) {
+                    const remainingMinutes = Math.ceil((lockInfo.lockedUntil - Date.now()) / 60000);
+                    logSecurity('BOT_REQUEST_REJECTED', 'bot-shield', req, `บล็อกการส่งข้อมูลจาก IP ที่ถูกระงับ (เหลือ ${remainingMinutes} นาที)`, 'CRITICAL');
+                    return sendError(res, 403, `IP ของท่านถูกระงับการส่งข้อเสนอเนื่องจากตรวจพบพฤติกรรมสแปมหรือยิงคำขอผิดปกติ (Anti-Bot Protection) กรุณารอ ${remainingMinutes} นาที`);
+                }
+
                 const body = await parseBody(req);
+
+                // 2. Honeypot Trap check (website_trap_hp must be empty)
+                if (body.website_trap_hp) {
+                    failedAttempts.set(clientIp, { count: 99, lockedUntil: Date.now() + (24 * 60 * 60 * 1000) });
+                    purgeSpamFromIp(clientIp, 'Honeypot Trap Triggered');
+                    logSecurity('BOT_HONEYPOT_BLOCKED', 'honeypot', req, `ตรวจพบบอทกรอกฟอร์ม (ติดกับดัก Honeypot: ${body.website_trap_hp}) บล็อก IP 24 ชม. และลบสแปมทันที`, 'CRITICAL');
+                    return sendError(res, 403, 'ระบบตรวจพบพฤติกรรมอัตโนมัติ (Bot detected) การส่งข้อมูลถูกปฏิเสธ');
+                }
+
+                // 3. Fast Submission Time-Trap (< 1500ms)
+                const formInitTime = parseInt(body.form_token_time, 10);
+                if (formInitTime && (Date.now() - formInitTime < 1500)) {
+                    failedAttempts.set(clientIp, { count: 99, lockedUntil: Date.now() + (6 * 60 * 60 * 1000) });
+                    purgeSpamFromIp(clientIp, 'Fast Submission Time-trap');
+                    logSecurity('FAST_SUBMISSION_BOT_BLOCKED', 'time-trap', req, `ตรวจพบบอทกรอกฟอร์มเร็วผิดปกติ (${Date.now() - formInitTime}ms) บล็อก IP 6 ชม. และลบสแปมทันที`, 'CRITICAL');
+                    return sendError(res, 403, 'ระบบตรวจพบการส่งข้อมูลที่เร็วผิดปกติ การส่งข้อมูลถูกปฏิเสธ');
+                }
+
+                // 4. Rate-Limiting per IP (max 3 proposals per minute)
+                const nowTime = Date.now();
+                const timestamps = (proposalRateLimit.get(clientIp) || []).filter(t => nowTime - t < 60000);
+                if (timestamps.length >= 3) {
+                    failedAttempts.set(clientIp, { count: 99, lockedUntil: nowTime + (2 * 60 * 60 * 1000) });
+                    purgeSpamFromIp(clientIp, 'Rate Limit Exceeded (>3 per min)');
+                    logSecurity('RAPID_SPAM_FLOOD_BLOCKED', 'rate-limiter', req, `ตรวจพบการยิงส่งข้อมูลสแปมรัวเกินกำหนด (>3 ครั้ง/นาที) บล็อก IP 2 ชม. และลบสแปมทันที`, 'CRITICAL');
+                    return sendError(res, 429, 'ท่านส่งคำขอบ่อยเกินไป ระบบระงับการส่งข้อมูลชั่วคราวเพื่อป้องกันสแปม');
+                }
+                timestamps.push(nowTime);
+                proposalRateLimit.set(clientIp, timestamps);
+
+                // 5. Content Heuristics & Link/Casino Spam Detection
+                if (isSpamText(body.problem) || isSpamText(body.solution) || isSpamText(body.name) || isSpamText(body.location)) {
+                    failedAttempts.set(clientIp, { count: 99, lockedUntil: nowTime + (24 * 60 * 60 * 1000) });
+                    purgeSpamFromIp(clientIp, 'Malicious Keywords / Spam Links');
+                    logSecurity('SPAM_KEYWORD_BLOCKED', 'content-filter', req, `ตรวจพบคำโฆษณา/ลิงก์สแปม/การพนัน บล็อก IP 24 ชม. และลบสแปมทันที`, 'CRITICAL');
+                    return sendError(res, 403, 'ข้อความของท่านมีคำที่ไม่ได้รับอนุญาต หรือเข้าข่ายสแปมโฆษณา');
+                }
+
+                // 6. Duplicate spam check (identical problem within 5 minutes)
+                const isDuplicate = state.proposals.some(p =>
+                    p.problem && p.problem === body.problem &&
+                    p.community === body.community &&
+                    (nowTime - new Date(p.timestamp || nowTime).getTime() < 5 * 60 * 1000)
+                );
+                if (isDuplicate) {
+                    logSecurity('DUPLICATE_SPAM_REJECTED', 'anti-spam', req, `ตรวจพบการส่งข้อเสนอซ้ำซ้อนในเวลาใกล้เคียงกัน`, 'WARN');
+                    return sendError(res, 400, 'ตรวจพบข้อเสนอที่มีข้อความซ้ำกันเพิ่งส่งเข้ามาเมื่อสักครู่');
+                }
+
                 if (!body.community || !body.problem) {
                     return sendError(res, 400, 'กรุณาระบุชุมชนและรายละเอียดปัญหา');
                 }
@@ -592,6 +733,9 @@ const server = http.createServer(async (req, res) => {
                 const yearTh = now.getFullYear() + 543;
                 const nextId = state.proposals.reduce((max, p) => Math.max(max, p.id || 0), 0) + 1;
                 const code = `PRJ-${yearTh}-${String(nextId).padStart(3, '0')}`;
+
+                // Process optional photo upload (stored cleanly in public/uploads/)
+                const savedPhoto = saveUploadedPhoto(code, body.photo);
 
                 const newProposal = {
                     id: nextId,
@@ -606,12 +750,16 @@ const server = http.createServer(async (req, res) => {
                     problem: body.problem || '',
                     solution: body.solution || '',
                     location: body.location || '',
+                    photo: savedPhoto || null,
+                    gps_lat: body.gps_lat ? String(body.gps_lat).slice(0, 20) : null,
+                    gps_lng: body.gps_lng ? String(body.gps_lng).slice(0, 20) : null,
                     department: body.department || 'กองช่าง',
                     status: (body.status === 'รอดำเนินการ') ? 'เข้าระบบแล้ว' : ((body.status === 'บรรจุในแผนชุมชน') ? 'บรรจุในแผน' : (body.status || 'เข้าระบบแล้ว')),
                     reject_reason: body.reject_reason || body.notes || '',
                     pdpa_consent: body.pdpa_consent === true || body.pdpa_consent === 'true',
                     pdpa_timestamp: now.toISOString(),
                     notes: body.notes || body.reject_reason || '',
+                    clientIp: clientIp,
                     updatedAt: now.toISOString()
                 };
 
@@ -619,7 +767,7 @@ const server = http.createServer(async (req, res) => {
                 saveProposals();
 
                 const user = getSessionUser(req);
-                logSecurity('PROPOSAL_CREATE', user ? user.username : 'public_citizen', req, `สร้างข้อเสนอใหม่ ${code} ชุมชน ${newProposal.community}`);
+                logSecurity('PROPOSAL_CREATE', user ? user.username : 'public_citizen', req, `สร้างข้อเสนอใหม่ ${code} ชุมชน ${newProposal.community} (รูป: ${savedPhoto ? 'มี' : 'ไม่มี'}, GPS: ${newProposal.gps_lat ? 'มี' : 'ไม่มี'})`);
 
                 return sendJson(res, 201, { success: true, message: 'บันทึกข้อเสนอโครงการเรียบร้อยแล้ว', data: newProposal });
             }
@@ -642,6 +790,15 @@ const server = http.createServer(async (req, res) => {
 
                 const updatedRejectReason = body.reject_reason !== undefined ? body.reject_reason : (body.notes !== undefined ? body.notes : (existing.reject_reason || ''));
 
+                let updatedPhoto = existing.photo;
+                if (body.photo !== undefined) {
+                    if (body.photo && body.photo.startsWith('data:image/')) {
+                        updatedPhoto = saveUploadedPhoto(existing.code, body.photo);
+                    } else {
+                        updatedPhoto = body.photo;
+                    }
+                }
+
                 state.proposals[index] = {
                     ...existing,
                     community: body.community !== undefined ? body.community : existing.community,
@@ -653,6 +810,9 @@ const server = http.createServer(async (req, res) => {
                     problem: body.problem !== undefined ? body.problem : existing.problem,
                     solution: body.solution !== undefined ? body.solution : existing.solution,
                     location: body.location !== undefined ? body.location : existing.location,
+                    photo: updatedPhoto,
+                    gps_lat: body.gps_lat !== undefined ? (body.gps_lat ? String(body.gps_lat).slice(0, 20) : null) : existing.gps_lat,
+                    gps_lng: body.gps_lng !== undefined ? (body.gps_lng ? String(body.gps_lng).slice(0, 20) : null) : existing.gps_lng,
                     department: body.department !== undefined ? body.department : existing.department,
                     status: updatedStatus,
                     reject_reason: updatedRejectReason,

@@ -283,6 +283,14 @@
           <textarea id="editRejectReason" class="v3-input" rows="2" placeholder="ระบุเหตุผล เช่น ส่งต่อหน่วยงานภายนอก (แขวงทางหลวงชนบท / การไฟฟ้า), อยู่นอกเหนืออำนาจหน้าที่ของเทศบาล ฯลฯ"></textarea>
         </div>
 
+        <div class="form-group" id="groupAttachedAssets" style="background: #f8fafc; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--slate-200);">
+          <label class="form-label" style="font-weight: 700; color: var(--slate-700);">
+            <i class="fas fa-paperclip"></i> ข้อมูลภาพถ่ายและพิกัดแผนที่ (ถ้ามี)
+          </label>
+          <div id="editPhotoPreviewArea" style="margin-bottom: 8px;"></div>
+          <div id="editGpsPreviewArea" style="font-size: 0.82rem; color: var(--slate-600);"></div>
+        </div>
+
         <div style="display: flex; gap: 10px; margin-top: 20px;">
           <button type="button" class="btn-v3-pill secondary" style="flex: 1;" onclick="closeEditModal()">ยกเลิก</button>
           <button type="submit" class="btn-v3-pill" style="flex: 1;" id="btnSaveProposal">บันทึกข้อมูล</button>

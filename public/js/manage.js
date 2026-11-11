@@ -302,6 +302,18 @@ function renderTable(list) {
         <div style="font-size: 0.75rem; color: var(--slate-400); margin-top: 2px;">
           ${p.timestamp ? p.timestamp.slice(0, 10) : ''}
         </div>
+        <div style="margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap;">
+          ${p.photo ? `
+            <a href="${p.photo}" target="_blank" style="display: inline-flex; align-items: center; gap: 2px; font-size: 0.72rem; color: var(--primary); background: #faf5ff; border: 1px solid var(--primary-light); padding: 1px 5px; border-radius: 3px; text-decoration: none;" title="คลิกเปิดดูรูปถ่าย">
+              <i class="fas fa-camera"></i> รูป
+            </a>
+          ` : ''}
+          ${p.gps_lat && p.gps_lng ? `
+            <a href="https://www.google.com/maps?q=${p.gps_lat},${p.gps_lng}" target="_blank" style="display: inline-flex; align-items: center; gap: 2px; font-size: 0.72rem; color: #065f46; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 1px 5px; border-radius: 3px; text-decoration: none;" title="เปิดดูแผนที่ Google Maps">
+              <i class="fas fa-map-marker-alt"></i> GPS
+            </a>
+          ` : ''}
+        </div>
       </td>
       <td>
         <strong>${escapeHtml(p.community || '-')}</strong>
@@ -415,6 +427,12 @@ function openAddModal() {
   document.getElementById('editStatus').value = 'เข้าระบบแล้ว';
   document.getElementById('editRejectReason').value = '';
   handleModalStatusChange('เข้าระบบแล้ว');
+
+  const photoArea = document.getElementById('editPhotoPreviewArea');
+  const gpsArea = document.getElementById('editGpsPreviewArea');
+  if (photoArea) photoArea.innerHTML = '<span style="font-size: 0.8rem; color: var(--slate-400);">ไม่มีรูปภาพแนบ</span>';
+  if (gpsArea) gpsArea.innerHTML = '<span style="font-size: 0.8rem; color: var(--slate-400);">ไม่มีพิกัด GPS แนบ</span>';
+
   document.getElementById('editModal').classList.add('active');
 }
 
@@ -440,6 +458,36 @@ function openEditModal(id) {
   document.getElementById('editStatus').value = normStatus;
   document.getElementById('editRejectReason').value = p.reject_reason || p.notes || '';
   handleModalStatusChange(normStatus);
+
+  const photoArea = document.getElementById('editPhotoPreviewArea');
+  const gpsArea = document.getElementById('editGpsPreviewArea');
+  if (photoArea) {
+    if (p.photo) {
+      photoArea.innerHTML = `
+        <div style="font-size: 0.8rem; margin-bottom: 4px;"><b>รูปถ่ายสภาพปัญหา:</b></div>
+        <a href="${p.photo}" target="_blank" title="คลิกเพื่อดูรูปขนาดเต็ม">
+          <img src="${p.photo}" alt="รูปถ่าย" style="max-height: 120px; max-width: 100%; object-fit: contain; border-radius: 4px; border: 1px solid #ccc;">
+        </a>
+      `;
+    } else {
+      photoArea.innerHTML = '<span style="font-size: 0.8rem; color: var(--slate-400);">ไม่มีรูปภาพแนบ</span>';
+    }
+  }
+
+  if (gpsArea) {
+    if (p.gps_lat && p.gps_lng) {
+      gpsArea.innerHTML = `
+        <div style="margin-top: 4px; display: flex; align-items: center; justify-content: space-between;">
+          <span><b>พิกัด GPS:</b> <code>${p.gps_lat}, ${p.gps_lng}</code></span>
+          <a href="https://www.google.com/maps?q=${p.gps_lat},${p.gps_lng}" target="_blank" class="btn-attach" style="padding: 2px 8px; font-size: 0.75rem; text-decoration: none;">
+            <i class="fas fa-map"></i> ดูใน Google Maps
+          </a>
+        </div>
+      `;
+    } else {
+      gpsArea.innerHTML = '<div style="margin-top: 4px; font-size: 0.8rem; color: var(--slate-400);">ไม่มีพิกัด GPS แนบ</div>';
+    }
+  }
 
   document.getElementById('editModal').classList.add('active');
 }

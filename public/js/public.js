@@ -7,11 +7,208 @@
 let currentUser = null;
 let allNews = [];
 let allProposals = [];
+let currentCitizenPhoto = null;
+let currentGpsData = null;
 
 document.addEventListener('DOMContentLoaded', () => {
   checkAuthSession();
   loadNews();
+
+  // Set anti-bot form timestamp
+  const ft = document.getElementById('formTokenTime');
+  if (ft) ft.value = Date.now();
 });
+
+// ─── SMART ADAPTIVE IMAGE COMPRESSION (Max 1280px, WebP/JPEG, ~80-120KB) ───
+function compressCitizenImage(file) {
+  return new Promise((resolve) => {
+    if (!file || !file.type.startsWith('image/')) return resolve(null);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const MAX_DIM = 1280;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > MAX_DIM) {
+              height = Math.round((height * MAX_DIM) / width);
+              width = MAX_DIM;
+            }
+          } else {
+            if (height > MAX_DIM) {
+              width = Math.round((width * MAX_DIM) / height);
+              height = MAX_DIM;
+            }
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Try WebP first for optimal file size, fallback to JPEG
+          let resultDataUrl = canvas.toDataURL('image/webp', 0.80);
+          if (!resultDataUrl || !resultDataUrl.startsWith('data:image/webp')) {
+            resultDataUrl = canvas.toDataURL('image/jpeg', 0.78);
+          }
+
+          // If still > 220KB, adaptively re-encode with quality 0.68
+          const approxBytes = Math.round((resultDataUrl.length - resultDataUrl.indexOf(',') - 1) * 0.75);
+          if (approxBytes > 220 * 1024) {
+            resultDataUrl = canvas.toDataURL('image/jpeg', 0.68);
+          }
+
+          const finalBytes = Math.round((resultDataUrl.length - resultDataUrl.indexOf(',') - 1) * 0.75);
+          resolve({
+            dataUrl: resultDataUrl,
+            originalSize: file.size || finalBytes,
+            compressedSize: finalBytes,
+            width,
+            height
+          });
+        } catch (err) {
+          console.error('Image compression error:', err);
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = e.target.result;
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleCitizenPhotoSelect(e) {
+  const files = e.target.files;
+  if (!files || files.length === 0) return;
+
+  const file = files[0];
+  if (!file.type.startsWith('image/')) {
+    alert('กรุณาเลือกไฟล์รูปภาพเท่านั้น (JPG, PNG, WebP)');
+    return;
+  }
+
+  const result = await compressCitizenImage(file);
+  if (!result || !result.dataUrl) {
+    alert('เกิดข้อผิดพลาดในการประมวลผลรูปภาพ');
+    return;
+  }
+
+  currentCitizenPhoto = result.dataUrl;
+
+  const btnPhoto = document.getElementById('btnPhotoTrigger');
+  const previewWrap = document.getElementById('photoPreviewWrap');
+  const previewImg = document.getElementById('photoPreviewImg');
+  const sizeBadge = document.getElementById('photoSizeBadge');
+
+  if (previewImg && previewWrap && sizeBadge) {
+    previewImg.src = result.dataUrl;
+    const kbOrig = Math.round(result.originalSize / 1024);
+    const kbComp = Math.round(result.compressedSize / 1024);
+    sizeBadge.textContent = `ขนาดรูป: ${kbComp} KB (บีบอัดลดจาก ${kbOrig} KB คมชัดสูง ประหยัดพื้นที่)`;
+    previewWrap.style.display = 'block';
+    if (btnPhoto) btnPhoto.style.display = 'none';
+  }
+}
+
+function removeCitizenPhoto() {
+  currentCitizenPhoto = null;
+  const f1 = document.getElementById('citizenPhotoFile');
+  const btnPhoto = document.getElementById('btnPhotoTrigger');
+  const pw = document.getElementById('photoPreviewWrap');
+  const pi = document.getElementById('photoPreviewImg');
+  if (f1) f1.value = '';
+  if (pw) pw.style.display = 'none';
+  if (pi) pi.src = '';
+  if (btnPhoto) btnPhoto.style.display = 'flex';
+}
+
+// ─── GPS LOCATION PINNING ────────────────────────────────────
+function getCurrentGpsLocation() {
+  const btn = document.getElementById('btnGetGps');
+  if (!navigator.geolocation) {
+    alert('อุปกรณ์หรือเบราว์เซอร์ของท่านไม่รองรับการดึงตำแหน่ง GPS');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = `
+    <div class="touch-action-icon gps"><i class="fas fa-spinner fa-spin"></i></div>
+    <div class="touch-action-text">
+      <span class="touch-action-title">กำลังค้นหาตำแหน่งพิกัดดาวเทียม...</span>
+      <span class="touch-action-sub">กรุณารอสักครู่</span>
+    </div>
+  `;
+
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      currentGpsData = { lat, lng };
+
+      const latInput = document.getElementById('citizenGpsLat');
+      const lngInput = document.getElementById('citizenGpsLng');
+      const txt = document.getElementById('gpsCoordsText');
+      const link = document.getElementById('gpsMapLink');
+      const res = document.getElementById('gpsLocationResult');
+
+      if (latInput) latInput.value = lat;
+      if (lngInput) lngInput.value = lng;
+      if (txt) txt.textContent = `พิกัด: ${lat}, ${lng}`;
+      if (link) link.href = `https://www.google.com/maps?q=${lat},${lng}`;
+      if (res) res.style.display = 'block';
+      if (btn) btn.style.display = 'none';
+      btn.disabled = false;
+    },
+    (err) => {
+      btn.disabled = false;
+      btn.innerHTML = `
+        <div class="touch-action-icon gps"><i class="fas fa-map-marker-alt"></i></div>
+        <div class="touch-action-text">
+          <span class="touch-action-title">ปักหมุดตำแหน่งปัจจุบัน (GPS)</span>
+          <span class="touch-action-sub">ดึงพิกัดจากมือถือเพื่อให้ลงพื้นที่ได้แม่นยำ</span>
+        </div>
+      `;
+      let msg = 'ไม่สามารถดึงตำแหน่ง GPS ได้';
+      if (err.code === 1) msg = 'กรุณาอนุญาตการเข้าถึงตำแหน่งที่ตั้ง (Location Permission) ในเบราว์เซอร์';
+      else if (err.code === 2) msg = 'สัญญาณ GPS ขัดข้องหรือไม่พร้อมใช้งาน';
+      else if (err.code === 3) msg = 'หมดเวลาการค้นหาพิกัด GPS';
+      alert(msg);
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+  );
+}
+
+function removeGpsLocation() {
+  currentGpsData = null;
+  const latInput = document.getElementById('citizenGpsLat');
+  const lngInput = document.getElementById('citizenGpsLng');
+  const res = document.getElementById('gpsLocationResult');
+  const btn = document.getElementById('btnGetGps');
+
+  if (latInput) latInput.value = '';
+  if (lngInput) lngInput.value = '';
+  if (res) res.style.display = 'none';
+  if (btn) {
+    btn.style.display = 'flex';
+    btn.disabled = false;
+    btn.innerHTML = `
+      <div class="touch-action-icon gps"><i class="fas fa-map-marker-alt"></i></div>
+      <div class="touch-action-text">
+        <span class="touch-action-title">ปักหมุดตำแหน่งปัจจุบัน (GPS)</span>
+        <span class="touch-action-sub">ดึงพิกัดจากมือถือเพื่อให้ลงพื้นที่ได้แม่นยำ</span>
+      </div>
+    `;
+  }
+}
 
 // ─── AUTHENTICATION CHECK ────────────────────────────────────
 async function checkAuthSession() {
@@ -251,6 +448,11 @@ async function submitProposal(e) {
     solution: form.solution.value.trim(),
     location: form.location.value.trim(),
     phone: form.phone.value.trim(),
+    photo: currentCitizenPhoto || null,
+    gps_lat: document.getElementById('citizenGpsLat')?.value || null,
+    gps_lng: document.getElementById('citizenGpsLng')?.value || null,
+    website_trap_hp: document.getElementById('websiteTrapHp')?.value || '',
+    form_token_time: document.getElementById('formTokenTime')?.value || '',
     pdpa_consent: form.pdpa_consent.checked
   };
 
@@ -271,6 +473,10 @@ async function submitProposal(e) {
     if (data.success) {
       alert(`บันทึกข้อเสนอโครงการเรียบร้อยแล้ว!\nรหัสข้อเสนอของคุณคือ: ${data.data.code}`);
       form.reset();
+      removeCitizenPhoto();
+      removeGpsLocation();
+      const ft = document.getElementById('formTokenTime');
+      if (ft) ft.value = Date.now();
       switchPage('history');
     } else {
       alert(data.error || 'ไม่สามารถบันทึกข้อเสนอโครงการได้');
@@ -338,6 +544,18 @@ function filterHistory() {
       <div style="font-size: 0.85rem; color: var(--slate-600); line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
         <b>แนวทางแก้ไข:</b> ${escapeHtml(p.solution || '')}
       </div>
+      <div style="display: flex; gap: 8px; align-items: center; margin-top: 8px; flex-wrap: wrap;">
+        ${p.photo ? `
+          <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: var(--primary); background: #faf5ff; border: 1px solid var(--primary-light); padding: 2px 8px; border-radius: 4px; font-weight: 600;">
+            <i class="fas fa-camera"></i> มีรูปภาพแนบ
+          </span>
+        ` : ''}
+        ${p.gps_lat && p.gps_lng ? `
+          <span style="display: inline-flex; align-items: center; gap: 4px; font-size: 0.75rem; color: #065f46; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 2px 8px; border-radius: 4px; font-weight: 600;">
+            <i class="fas fa-map-marker-alt"></i> มีพิกัด GPS
+          </span>
+        ` : ''}
+      </div>
       ${(p.status === 'ไม่สามารถดำเนินการได้' && (p.reject_reason || p.notes)) ? `
         <div style="font-size: 0.8rem; color: #9f1239; background: #fff1f2; border: 1px solid #fecdd3; padding: 6px 10px; border-radius: var(--radius-sm); margin-top: 8px; line-height: 1.4;">
           <b>เหตุผลที่ไม่สามารถดำเนินการได้:</b> ${escapeHtml(p.reject_reason || p.notes)}
@@ -380,6 +598,27 @@ function openDetailModal(id) {
       <div style="font-weight: 700; color: var(--success); margin-bottom: 4px;">แนวทางแก้ไขหรือโครงการที่ต้องการ:</div>
       <div>${escapeHtml(p.solution || '')}</div>
     </div>
+    ${p.photo ? `
+      <div style="margin-bottom: 12px; background: var(--slate-50); padding: 12px; border-radius: var(--radius-md);">
+        <div style="font-weight: 700; color: var(--primary-dark); margin-bottom: 6px;">
+          <i class="fas fa-image"></i> รูปถ่ายสภาพปัญหาที่แนบมา:
+        </div>
+        <a href="${p.photo}" target="_blank" title="คลิกเพื่อดูรูปภาพขนาดเต็ม">
+          <img src="${p.photo}" alt="รูปถ่ายสภาพปัญหา" style="max-width: 100%; max-height: 240px; object-fit: contain; border-radius: 6px; border: 1px solid var(--slate-300); display: block;">
+        </a>
+      </div>
+    ` : ''}
+    ${p.gps_lat && p.gps_lng ? `
+      <div style="margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 10px 14px; border-radius: var(--radius-md);">
+        <div>
+          <div style="font-weight: 700; color: #065f46; font-size: 0.85rem;"><i class="fas fa-map-marker-alt"></i> พิกัดตำแหน่ง GPS:</div>
+          <div style="font-family: monospace; font-size: 0.85rem; color: #047857; margin-top: 2px;">${p.gps_lat}, ${p.gps_lng}</div>
+        </div>
+        <a href="https://www.google.com/maps?q=${p.gps_lat},${p.gps_lng}" target="_blank" class="btn-attach" style="background: #059669; color: #fff; border-color: #047857; text-decoration: none;">
+          <i class="fas fa-external-link-alt"></i> เปิดแผนที่ Google Maps
+        </a>
+      </div>
+    ` : ''}
     ${(p.status === 'ไม่สามารถดำเนินการได้' || p.reject_reason) ? `
       <div style="margin-bottom: 12px; background: #fff1f2; border: 1.5px solid #fecdd3; padding: 12px; border-radius: var(--radius-md);">
         <div style="font-weight: 700; color: #9f1239; margin-bottom: 4px;">

@@ -229,7 +229,11 @@ function renderSummaryTable(container, items) {
           <div style="font-weight: 600;">${p.problem || '-'}</div>
           <div style="font-size: 8.5pt; color: #475569; margin-top: 3px;">แนวทางแก้ไข: ${p.solution || '-'}</div>
         </td>
-        <td>${p.location || '-'}</td>
+        <td>
+          ${p.location || '-'}
+          ${p.gps_lat && p.gps_lng ? `<br><small style="color: #0284c7;">GPS: ${p.gps_lat}, ${p.gps_lng}</small>` : ''}
+          ${p.photo ? `<br><small style="color: #7c3aed;">[มีรูปภาพแนบ]</small>` : ''}
+        </td>
         <td>${p.prefix || ''}${p.name || '-'}${p.phone ? `<br><small style="color: #64748b;">โทร: ${p.phone}</small>` : ''}</td>
         <td style="text-align: center;">
           <div style="font-weight: 600;">${st}</div>
@@ -327,8 +331,19 @@ function renderIndividualForms(container, items) {
           </div>
           <div class="field-row" style="margin-top: 0.5rem;">
             <div class="field-label">สถานที่ดำเนินการ:</div>
-            <div class="field-val">${p.location || '-'}</div>
+            <div class="field-val">
+              ${p.location || '-'}
+              ${p.gps_lat && p.gps_lng ? `<br><small style="color: #0284c7;">พิกัด GPS: ${p.gps_lat}, ${p.gps_lng}</small>` : ''}
+            </div>
           </div>
+          ${p.photo ? `
+            <div class="field-row" style="margin-top: 0.5rem;">
+              <div class="field-label">รูปถ่ายสภาพปัญหา:</div>
+              <div class="field-val">
+                <img src="${p.photo}" alt="รูปถ่ายสภาพปัญหา" style="max-height: 120px; max-width: 220px; object-fit: contain; border: 1px solid #ccc; border-radius: 4px;">
+              </div>
+            </div>
+          ` : ''}
         </div>
 
         <div class="form-box">

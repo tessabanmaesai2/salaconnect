@@ -14,6 +14,7 @@ services:
       - MASTER_PASSWORD=Kn123990002466119842528
     volumes:
       - ./data:/app/data
+      - ./public/uploads:/app/public/uploads
     networks:
       - maesai_net
 
