@@ -4,6 +4,8 @@
  * ============================================================
  */
 
+const API_BASE = window.location.pathname.startsWith('/sala') ? '/sala/api' : '/api';
+
 let currentMasterUser = null;
 let allMasterUsers = [];
 let allRadarLogs = [];
@@ -30,7 +32,7 @@ async function checkMasterAuth() {
     return;
   }
   try {
-    const res = await fetch('/api/auth/me', {
+    const res = await fetch(`${API_BASE}/auth/me`, {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
@@ -151,7 +153,7 @@ async function handleMasterLoginSubmit(e) {
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบสิทธิ์...';
 
   try {
-    const res = await fetch('/api/auth/master-login', {
+    const res = await fetch(`${API_BASE}/auth/master-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password, masterKey: password })
@@ -182,7 +184,7 @@ async function handleMasterLogout() {
   const token = localStorage.getItem('sala_token');
   if (token) {
     try {
-      await fetch('/api/auth/logout', {
+      await fetch(`${API_BASE}/auth/logout', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -221,7 +223,7 @@ async function loadUsers() {
   const token = localStorage.getItem('sala_token');
   const tbody = document.getElementById('userTableBody');
   try {
-    const res = await fetch('/api/users', {
+    const res = await fetch(`${API_BASE}/users', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
@@ -337,7 +339,7 @@ async function saveUserAccount(e) {
   if (pass) payload.password = pass;
 
   try {
-    const url = isEdit ? `/api/users/${id}` : '/api/users';
+    const url = isEdit ? `${API_BASE}/users/${id}` : API_BASE + '/users';
     const method = isEdit ? 'PUT' : 'POST';
 
     const res = await fetch(url, {
@@ -369,7 +371,7 @@ async function deleteUserAccount(id, username) {
   if (!confirm(`คุณต้องการลบบัญชีเจ้าหน้าที่ "${username}" หรือไม่?`)) return;
   const token = localStorage.getItem('sala_token');
   try {
-    const res = await fetch(`/api/users/${id}`, {
+    const res = await fetch(`${API_BASE}/users/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -390,7 +392,7 @@ async function loadSecurityLogs() {
   const token = localStorage.getItem('sala_token');
   const tbody = document.getElementById('radarTableBody');
   try {
-    const res = await fetch('/api/logs', {
+    const res = await fetch(`${API_BASE}/logs', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
@@ -408,7 +410,7 @@ async function loadBannedIps() {
   const token = localStorage.getItem('sala_token');
   const container = document.getElementById('bannedIpsContainer');
   try {
-    const res = await fetch('/api/security/banned-ips', {
+    const res = await fetch(`${API_BASE}/security/banned-ips', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
@@ -435,7 +437,7 @@ async function unbanIp(ip) {
   if (!confirm(`คุณต้องการปลดล็อก IP ${ip} ใช่หรือไม่?`)) return;
   const token = localStorage.getItem('sala_token');
   try {
-    const res = await fetch('/api/security/unban', {
+    const res = await fetch(`${API_BASE}/security/unban', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -571,7 +573,7 @@ function renderRadarLogs() {
 async function deleteSingleLog(id) {
   const token = localStorage.getItem('sala_token');
   try {
-    const res = await fetch(`/api/logs/${id}`, {
+    const res = await fetch(`${API_BASE}/logs/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -586,7 +588,7 @@ async function clearAllSecurityLogs() {
   if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการล้างประวัติความปลอดภัยทั้งหมด?')) return;
   const token = localStorage.getItem('sala_token');
   try {
-    const res = await fetch('/api/logs', {
+    const res = await fetch(`${API_BASE}/logs', {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });

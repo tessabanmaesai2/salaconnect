@@ -1,3 +1,5 @@
+const API_BASE = window.location.pathname.startsWith('/sala') ? '/sala/api' : '/api';
+
 /**
  * ============================================================
  * MAESAI SALA CONNECT — Staff Management Workspace Logic
@@ -66,7 +68,7 @@ async function checkAuthSession() {
     return;
   }
   try {
-    const res = await fetch('/api/auth/me', {
+    const res = await fetch(`${API_BASE}/auth/me', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
@@ -196,7 +198,7 @@ async function handleGateLogin(e) {
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...';
 
   try {
-    const res = await fetch('/api/auth/login', {
+    const res = await fetch(`${API_BASE}/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -224,7 +226,7 @@ async function handleLogout() {
   const token = localStorage.getItem('sala_token');
   if (token) {
     try {
-      await fetch('/api/auth/logout', {
+      await fetch(`${API_BASE}/auth/logout', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -239,7 +241,7 @@ async function handleLogout() {
 async function loadProposals() {
   const token = localStorage.getItem('sala_token');
   try {
-    const res = await fetch('/api/proposals', {
+    const res = await fetch(`${API_BASE}/proposals', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
@@ -618,7 +620,7 @@ async function changeStatusInline(id, newStatus) {
   }
 
   try {
-    const res = await fetch(`/api/proposals/${id}`, {
+    const res = await fetch(`${API_BASE}/proposals/${id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -902,7 +904,7 @@ async function saveProposal(e) {
   btn.disabled = true;
 
   try {
-    const url = isEdit ? `/api/proposals/${id}` : '/api/proposals';
+    const url = isEdit ? `${API_BASE}/proposals/${id}` : API_BASE + '/proposals';
     const method = isEdit ? 'PUT' : 'POST';
 
     const res = await fetch(url, {
@@ -932,7 +934,7 @@ async function deleteProposal(id) {
   if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบข้อเสนอโครงการนี้?')) return;
   const token = localStorage.getItem('sala_token');
   try {
-    const res = await fetch(`/api/proposals/${id}`, {
+    const res = await fetch(`${API_BASE}/proposals/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -1181,7 +1183,7 @@ async function loadManageNewsList() {
   const container = document.getElementById('manageNewsList');
   if (!container) return;
   try {
-    const res = await fetch('/api/news');
+    const res = await fetch(`${API_BASE}/news');
     const data = await res.json();
     if (data.success && Array.isArray(data.data)) {
       manageNewsData = data.data;
@@ -1242,7 +1244,7 @@ async function handleManageNewsSubmit(e) {
   if (!title || !detail) return showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
 
   const isEditing = Boolean(id);
-  const url = isEditing ? `/api/news/${id}` : '/api/news';
+  const url = isEditing ? `${API_BASE}/news/${id}` : API_BASE + '/news';
   const method = isEditing ? 'PUT' : 'POST';
 
   try {
@@ -1272,7 +1274,7 @@ async function deleteManageNews(id) {
   const token = localStorage.getItem('sala_token');
   if (!token) return showToast('กรุณาเข้าสู่ระบบก่อน', 'warning');
   try {
-    const res = await fetch(`/api/news/${id}`, {
+    const res = await fetch(`${API_BASE}/news/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });

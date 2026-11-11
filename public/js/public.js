@@ -1,3 +1,5 @@
+const API_BASE = window.location.pathname.startsWith('/sala') ? '/sala/api' : '/api';
+
 /**
  * ============================================================
  * MAESAI SALA CONNECT — Public Citizen SPA Logic (v4.0.0)
@@ -45,7 +47,7 @@ async function checkAuthSession() {
   }
 
   try {
-    const res = await fetch('/api/auth/me', {
+    const res = await fetch(`${API_BASE}/auth/me', {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
@@ -83,7 +85,7 @@ async function handlePublicLogout() {
   const token = localStorage.getItem('sala_token');
   if (token) {
     try {
-      await fetch('/api/auth/logout', {
+      await fetch(`${API_BASE}/auth/logout', {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -453,7 +455,7 @@ function renderNewsCard(n) {
 async function loadNews() {
   const container = document.getElementById('newsContainer');
   try {
-    const res = await fetch('/api/news');
+    const res = await fetch(`${API_BASE}/news');
     const data = await res.json();
     if (data.success && Array.isArray(data.data) && data.data.length > 0) {
       allNews = data.data;
@@ -470,7 +472,7 @@ async function deleteNews(id) {
   if (!confirm('คุณต้องการลบข่าวสารนี้ใช่หรือไม่?')) return;
   const token = localStorage.getItem('sala_token');
   try {
-    const res = await fetch(`/api/news/${id}`, {
+    const res = await fetch(`${API_BASE}/news/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
     });
@@ -517,7 +519,7 @@ async function submitProposal(e) {
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึกข้อมูล...';
 
   try {
-    const res = await fetch('/api/proposals', {
+    const res = await fetch(`${API_BASE}/proposals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
@@ -550,7 +552,7 @@ async function loadHistory() {
   const isPublic = !currentUser;
 
   try {
-    const res = await fetch(`/api/proposals?public=${isPublic ? 'true' : 'false'}`);
+    const res = await fetch(`${API_BASE}/proposals?public=${isPublic ? 'true' : 'false'}`);
     const data = await res.json();
     if (data.success && Array.isArray(data.data)) {
       allProposals = data.data;
