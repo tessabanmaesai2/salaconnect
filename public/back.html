@@ -72,15 +72,25 @@
         <i class="fas fa-exclamation-triangle"></i> <b>RESTRICTED:</b> หน้าเฉพาะผู้ถือ Master Key เพื่อดูแลความปลอดภัยระบบ
       </div>
 
-      <form id="formMasterLogin" onsubmit="handleMasterLoginSubmit(event)" style="text-align: left;">
+      <form id="formMasterLogin" onsubmit="handleMasterLoginSubmit(event)" style="text-align: left;" autocomplete="off">
         <div class="form-group">
-          <label class="form-label">ชื่อผู้ใช้งาน (Master Key Username) <span class="req">*</span></label>
-          <input type="text" id="masterKeyUsernameInput" class="v3-input" required placeholder="กรอกชื่อผู้ใช้งาน หรือ Master Key..." autocomplete="username">
+          <label class="form-label">ชื่อผู้ใช้งาน (Master Key Username หรือ Admin) <span class="req">*</span></label>
+          <input type="text" id="masterKeyUsernameInput" name="master_user_field" class="v3-input" required placeholder="กรอกชื่อผู้ใช้งาน หรือ Master Key..." autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" value="">
         </div>
         <div class="form-group">
           <label class="form-label">รหัสผ่าน (Password) <span class="req">*</span></label>
-          <input type="password" id="masterKeyPasswordInput" class="v3-input" required placeholder="กรอกรหัสผ่าน Master Password..." autocomplete="current-password">
+          <div style="position: relative;">
+            <input type="password" id="masterKeyPasswordInput" name="master_pass_field" class="v3-input" required placeholder="กรอกรหัสผ่าน..." autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');" style="padding-right: 42px;" value="">
+            <button type="button" onclick="togglePasswordVisibility('masterKeyPasswordInput', 'masterPassEye')" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--slate-400); cursor: pointer; padding: 4px;" title="แสดง/ซ่อนรหัสผ่าน">
+              <i class="fas fa-eye" id="masterPassEye"></i>
+            </button>
+          </div>
         </div>
+        <div id="loginErrorMsg" class="login-error-banner" style="display: none;">
+          <i class="fas fa-exclamation-circle" style="color: var(--danger); font-size: 1.1rem;"></i>
+          <span id="loginErrorText"></span>
+        </div>
+
         <button type="submit" id="btnMasterSubmit" class="btn-v3-pill danger" style="width: 100%; margin-top: 10px;">
           <i class="fas fa-key"></i> เข้าสู่ระบบความปลอดภัย
         </button>
@@ -246,6 +256,7 @@
           <select id="inputRole" class="v3-input" required>
             <option value="Officer">Officer (เจ้าหน้าที่บันทึกและจัดการข้อเสนอ)</option>
             <option value="Admin">Admin (ผู้ดูแลระบบระดับกอง/งาน)</option>
+            <option value="Viewer">Viewer (ผู้บริหาร / สมาชิกสภาฯ ดูได้อย่างเดียว)</option>
           </select>
         </div>
 

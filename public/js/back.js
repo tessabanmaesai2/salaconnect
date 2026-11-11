@@ -25,7 +25,7 @@ async function checkMasterAuth() {
       headers: { 'Authorization': `Bearer ${token}` }
     });
     const data = await res.json();
-    if (data.success && data.user && data.user.role === 'Super Admin') {
+    if (data.success && data.user && (data.user.role === 'Super Admin' || data.user.role === 'Admin')) {
       currentMasterUser = data.user;
       showMasterDashboard();
       await loadUsers();
@@ -43,6 +43,35 @@ function showMasterLogin() {
   document.getElementById('masterLoginScreen').classList.remove('hidden');
   document.getElementById('masterDashboardScreen').classList.add('hidden');
   document.getElementById('btnMasterLogout').classList.add('hidden');
+
+  // Hard wipe all inputs to permanently prevent browser autofill
+  const f = document.getElementById('formMasterLogin');
+  if (f) f.reset();
+  const u = document.getElementById('masterKeyUsernameInput');
+  const p = document.getElementById('masterKeyPasswordInput');
+  if (u) u.value = '';
+  if (p) p.value = '';
+  setTimeout(() => { if (u) u.value = ''; if (p) p.value = ''; }, 50);
+  setTimeout(() => { if (u) u.value = ''; if (p) p.value = ''; }, 200);
+}
+
+function togglePasswordVisibility(inputId, eyeId) {
+  const inp = document.getElementById(inputId);
+  const eye = document.getElementById(eyeId);
+  if (!inp) return;
+  if (inp.type === 'password') {
+    inp.type = 'text';
+    if (eye) {
+      eye.classList.remove('fa-eye');
+      eye.classList.add('fa-eye-slash');
+    }
+  } else {
+    inp.type = 'password';
+    if (eye) {
+      eye.classList.remove('fa-eye-slash');
+      eye.classList.add('fa-eye');
+    }
+  }
 }
 
 function showMasterDashboard() {
@@ -51,14 +80,58 @@ function showMasterDashboard() {
   document.getElementById('btnMasterLogout').classList.remove('hidden');
 }
 
+// ─── TOAST NOTIFICATION UTILITY ──────────────────────────────
+function showToast(msg, type = 'info') {
+  let container = document.getElementById('salaToastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'salaToastContainer';
+    container.className = 'sala-toast-container';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `sala-toast ${type}`;
+  let icon = 'info-circle';
+  if (type === 'error') icon = 'exclamation-circle';
+  else if (type === 'success') icon = 'check-circle';
+  else if (type === 'warning') icon = 'exclamation-triangle';
+
+  toast.innerHTML = `
+    <i class="fas fa-${icon} sala-toast-icon"></i>
+    <span class="sala-toast-text">${msg}</span>
+  `;
+
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-10px)';
+    setTimeout(() => toast.remove(), 250);
+  }, 3200);
+}
+
 async function handleMasterLoginSubmit(e) {
   e.preventDefault();
   const username = (document.getElementById('masterKeyUsernameInput')?.value || '').trim();
   const password = (document.getElementById('masterKeyPasswordInput')?.value || '').trim();
   const btn = document.getElementById('btnMasterSubmit');
+  const errBox = document.getElementById('loginErrorMsg');
+  const errTxt = document.getElementById('loginErrorText');
 
-  if (!username) return alert('กรุณากรอกชื่อผู้ใช้งานหรือ Master Key');
-  if (!password) return alert('กรุณากรอกรหัสผ่าน');
+  if (errBox) errBox.style.display = 'none';
+
+  function showLoginErr(msg) {
+    if (errBox && errTxt) {
+      errTxt.textContent = msg;
+      errBox.style.display = 'flex';
+    } else {
+      showToast(msg, 'error');
+    }
+  }
+
+  if (!username) return showLoginErr('กรุณากรอกชื่อผู้ใช้งานหรือ Master Key');
+  if (!password) return showLoginErr('กรุณากรอกรหัสผ่าน');
 
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบสิทธิ์...';
@@ -75,14 +148,15 @@ async function handleMasterLoginSubmit(e) {
       currentMasterUser = data.user;
       showMasterDashboard();
       document.getElementById('formMasterLogin').reset();
+      showToast(`เข้าสู่ระบบสำเร็จในบทบาท ${data.user.role}`, 'success');
       await loadUsers();
       await loadSecurityLogs();
       await loadBannedIps();
     } else {
-      alert(data.error || 'ชื่อผู้ใช้หรือรหัสผ่าน Master Key ไม่ถูกต้อง');
+      showLoginErr(data.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
     }
   } catch (err) {
-    alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    showLoginErr('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-key"></i> เข้าสู่ระบบความปลอดภัย';
@@ -153,35 +227,46 @@ function renderUsersTable(list) {
     return;
   }
 
-  tbody.innerHTML = list.map(u => `
-    <tr>
-      <td style="text-align: center; font-weight: 700; color: var(--slate-400);">${u.id}</td>
-      <td>
-        <strong style="color: var(--primary); font-family: var(--font-heading);">${escapeHtml(u.username)}</strong>
-      </td>
-      <td>${escapeHtml(u.name || '-')}</td>
-      <td style="text-align: center;">
-        <span class="badge-status ${u.role === 'Admin' ? 'badge-review' : 'badge-pending'}">
-          ${escapeHtml(u.role || 'Officer')}
-        </span>
-      </td>
-      <td style="text-align: center;">
-        <span class="badge-status ${u.status === 'Active' ? 'badge-completed' : 'badge-rejected'}">
-          ${u.status === 'Active' ? 'เปิดใช้งาน' : 'ระงับชั่วคราว'}
-        </span>
-      </td>
-      <td style="text-align: center;">
-        <div style="display: flex; gap: 4px; justify-content: center;">
-          <button type="button" class="btn-action" title="แก้ไขบัญชี" onclick="openEditUserModal(${u.id})">
-            <i class="fas fa-edit" style="color: var(--primary);"></i>
-          </button>
-          <button type="button" class="btn-action danger" title="ลบบัญชี" onclick="deleteUserAccount(${u.id}, '${escapeHtml(u.username)}')">
-            <i class="fas fa-trash-alt" style="color: var(--danger);"></i>
-          </button>
-        </div>
-      </td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = list.map(u => {
+    const isMaster = (u.id === 1 || u.role === 'Super Admin' || u.username === 'thedatazero');
+    return `
+      <tr style="${isMaster ? 'background: #fffdf5;' : ''}">
+        <td style="text-align: center; font-weight: 700; color: var(--slate-400);">${u.id}</td>
+        <td>
+          <strong style="color: ${isMaster ? '#b45309' : 'var(--primary)'}; font-family: var(--font-heading);">
+            ${isMaster ? '<i class="fas fa-crown" style="color: var(--gold); margin-right: 4px;"></i>' : ''}${escapeHtml(u.username)}
+          </strong>
+        </td>
+        <td>${escapeHtml(u.name || '-')}</td>
+        <td style="text-align: center;">
+          <span class="badge-status ${u.role === 'Super Admin' ? 'badge-completed' : (u.role === 'Admin' ? 'badge-review' : 'badge-pending')}">
+            ${escapeHtml(u.role || 'Officer')}
+          </span>
+        </td>
+        <td style="text-align: center;">
+          <span class="badge-status ${u.status === 'Active' ? 'badge-completed' : 'badge-rejected'}">
+            ${u.status === 'Active' ? 'เปิดใช้งาน' : 'ระงับชั่วคราว'}
+          </span>
+        </td>
+        <td style="text-align: center;">
+          ${isMaster ? `
+            <span style="font-size: 0.74rem; color: #b45309; background: #fffbeb; border: 1px solid #fde68a; padding: 4px 10px; border-radius: 9999px; font-weight: 600; display: inline-flex; align-items: center; gap: 4px;">
+              <i class="fas fa-lock"></i> บัญชีระบบ Master Key (ล็อกถาวร)
+            </span>
+          ` : `
+            <div style="display: flex; gap: 4px; justify-content: center;">
+              <button type="button" class="btn-action" title="แก้ไขบัญชี" onclick="openEditUserModal(${u.id})">
+                <i class="fas fa-edit" style="color: var(--primary);"></i>
+              </button>
+              <button type="button" class="btn-action danger" title="ลบบัญชี" onclick="deleteUserAccount(${u.id}, '${escapeHtml(u.username)}')">
+                <i class="fas fa-trash-alt" style="color: var(--danger);"></i>
+              </button>
+            </div>
+          `}
+        </td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function openAddUserModal() {
@@ -198,10 +283,15 @@ function openEditUserModal(id) {
   const u = allMasterUsers.find(item => item.id === id);
   if (!u) return;
 
+  if (u.id === 1 || u.role === 'Super Admin' || u.username === 'thedatazero') {
+    showToast('บัญชี Master Key เป็นรากฐานของระบบ ล็อกถาวรเพื่อความปลอดภัย ไม่สามารถแก้ไขหรือลบผ่านหน้าเว็บได้', 'warning');
+    return;
+  }
+
   document.getElementById('userModalTitle').textContent = `แก้ไขบัญชีเจ้าหน้าที่: ${u.username}`;
   document.getElementById('userId').value = u.id;
   document.getElementById('inputUsername').value = u.username;
-  document.getElementById('inputUsername').disabled = (u.id === 1);
+  document.getElementById('inputUsername').disabled = false;
   document.getElementById('inputName').value = u.name || '';
   document.getElementById('inputRole').value = u.role || 'Officer';
   document.getElementById('inputStatus').value = u.status || 'Active';
@@ -246,18 +336,22 @@ async function saveUserAccount(e) {
     });
     const data = await res.json();
     if (data.success) {
-      alert(isEdit ? 'อัปเดตข้อมูลเจ้าหน้าที่เรียบร้อย' : 'สร้างบัญชีเจ้าหน้าที่ใหม่เรียบร้อย');
+      showToast(isEdit ? 'อัปเดตข้อมูลเจ้าหน้าที่เรียบร้อย' : 'สร้างบัญชีเจ้าหน้าที่ใหม่เรียบร้อย', 'success');
       closeUserModal();
       await loadUsers();
     } else {
-      alert(data.error || 'บันทึกข้อมูลไม่สำเร็จ');
+      showToast(data.error || 'บันทึกข้อมูลไม่สำเร็จ', 'error');
     }
   } catch (err) {
-    alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
   }
 }
 
 async function deleteUserAccount(id, username) {
+  if (id === 1 || username === 'thedatazero') {
+    showToast('ไม่อนุญาตให้ลบบัญชี Master Key ของระบบ', 'error');
+    return;
+  }
   if (!confirm(`คุณต้องการลบบัญชีเจ้าหน้าที่ "${username}" หรือไม่?`)) return;
   const token = localStorage.getItem('sala_token');
   try {
@@ -267,13 +361,13 @@ async function deleteUserAccount(id, username) {
     });
     const data = await res.json();
     if (data.success) {
-      alert('ลบบัญชีเรียบร้อยแล้ว');
+      showToast('ลบบัญชีเรียบร้อยแล้ว', 'success');
       await loadUsers();
     } else {
-      alert(data.error || 'ไม่สามารถลบบัญชีนี้ได้');
+      showToast(data.error || 'ไม่สามารถลบบัญชีนี้ได้', 'error');
     }
   } catch (e) {
-    alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
   }
 }
 
@@ -337,12 +431,12 @@ async function unbanIp(ip) {
     });
     const data = await res.json();
     if (data.success) {
-      alert(`ปลดล็อก IP ${ip} สำเร็จ`);
+      showToast(`ปลดล็อก IP ${ip} สำเร็จ`, 'success');
       loadBannedIps();
       loadSecurityLogs();
     }
   } catch (e) {
-    alert('เกิดข้อผิดพลาดในการปลดล็อก');
+    showToast('เกิดข้อผิดพลาดในการปลดล็อก', 'error');
   }
 }
 
@@ -484,16 +578,16 @@ async function clearAllSecurityLogs() {
     });
     const data = await res.json();
     if (data.success) {
-      alert('ล้างประวัติความปลอดภัยทั้งหมดเรียบร้อยแล้ว');
+      showToast('ล้างประวัติความปลอดภัยทั้งหมดเรียบร้อยแล้ว', 'success');
       loadSecurityLogs();
     }
   } catch (e) {
-    alert('เกิดข้อผิดพลาด');
+    showToast('เกิดข้อผิดพลาดในการล้างประวัติ', 'error');
   }
 }
 
 function exportSecurityLogsJson() {
-  if (allRadarLogs.length === 0) return alert('ไม่มีข้อมูลสำหรับส่งออก');
+  if (allRadarLogs.length === 0) return showToast('ไม่มีข้อมูลสำหรับส่งออก', 'warning');
   const blob = new Blob([JSON.stringify(allRadarLogs, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -501,6 +595,7 @@ function exportSecurityLogsJson() {
   a.download = `SALA_CONNECT_Security_Logs_${new Date().toISOString().slice(0, 10)}.json`;
   a.click();
   URL.revokeObjectURL(url);
+  showToast('ส่งออกไฟล์ประวัติความปลอดภัย JSON เรียบร้อยแล้ว', 'success');
 }
 
 function escapeHtml(str) {

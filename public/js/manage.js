@@ -50,6 +50,23 @@ function showLoginGate() {
     staffNav.classList.add('hidden');
     staffNav.style.display = 'none';
   }
+
+  // Ensure login inputs are completely blank with no browser autofill
+  const f = document.getElementById('formStaffGateLogin');
+  if (f) f.reset();
+  const u = document.getElementById('gateUser');
+  const p = document.getElementById('gatePass');
+  if (u) u.value = '';
+  if (p) p.value = '';
+
+  setTimeout(() => {
+    if (u) u.value = '';
+    if (p) p.value = '';
+  }, 50);
+  setTimeout(() => {
+    if (u) u.value = '';
+    if (p) p.value = '';
+  }, 200);
 }
 
 function showDashboard() {
@@ -90,13 +107,58 @@ function togglePasswordVisibility(inputId, eyeId) {
   }
 }
 
+// ─── TOAST NOTIFICATION UTILITY ──────────────────────────────
+function showToast(msg, type = 'info') {
+  let container = document.getElementById('salaToastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'salaToastContainer';
+    container.className = 'sala-toast-container';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `sala-toast ${type}`;
+  let icon = 'info-circle';
+  if (type === 'error') icon = 'exclamation-circle';
+  else if (type === 'success') icon = 'check-circle';
+  else if (type === 'warning') icon = 'exclamation-triangle';
+
+  toast.innerHTML = `
+    <i class="fas fa-${icon} sala-toast-icon"></i>
+    <span class="sala-toast-text">${msg}</span>
+  `;
+
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-10px)';
+    setTimeout(() => toast.remove(), 250);
+  }, 3200);
+}
+
 async function handleGateLogin(e) {
   e.preventDefault();
   const username = document.getElementById('gateUser').value.trim();
   const password = document.getElementById('gatePass').value.trim();
   const btn = document.getElementById('btnGateSubmit');
+  const errBox = document.getElementById('loginErrorMsg');
+  const errTxt = document.getElementById('loginErrorText');
 
-  if (!username || !password) return alert('กรุณากรอกชื่อผู้ใช้และรหัสผ่าน');
+  if (errBox) errBox.style.display = 'none';
+
+  function showLoginErr(msg) {
+    if (errBox && errTxt) {
+      errTxt.textContent = msg;
+      errBox.style.display = 'flex';
+    } else {
+      showToast(msg, 'error');
+    }
+  }
+
+  if (!username) return showLoginErr('กรุณากรอกชื่อผู้ใช้งานหรือชื่อเจ้าหน้าที่');
+  if (!password) return showLoginErr('กรุณากรอกรหัสผ่าน');
 
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังตรวจสอบ...';
@@ -112,12 +174,13 @@ async function handleGateLogin(e) {
       localStorage.setItem('sala_token', data.token);
       currentUser = data.user;
       showDashboard();
+      showToast(`เข้าสู่ระบบสำเร็จในบทบาท ${data.user.role}`, 'success');
       await loadProposals();
     } else {
-      alert(data.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
+      showLoginErr(data.error || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
     }
   } catch (err) {
-    alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    showLoginErr('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบจัดการ';
@@ -432,11 +495,11 @@ async function changeStatusInline(id, newStatus) {
       updateKpiCards();
       renderTable(filteredProposals);
     } else {
-      alert(data.error || 'ไม่สามารถเปลี่ยนสถานะได้');
+      showToast(data.error || 'ไม่สามารถเปลี่ยนสถานะได้', 'error');
       loadProposals();
     }
   } catch (e) {
-    alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
   }
 }
 
@@ -564,18 +627,16 @@ async function saveProposal(e) {
     });
     const data = await res.json();
     if (data.success) {
-      alert(isEdit ? 'แก้ไขข้อมูลเรียบร้อยแล้ว' : 'สร้างข้อเสนอใหม่เรียบร้อยแล้ว');
+      showToast(isEdit ? 'แก้ไขข้อมูลเรียบร้อยแล้ว' : 'สร้างข้อเสนอใหม่เรียบร้อยแล้ว', 'success');
       closeEditModal();
       await loadProposals();
     } else {
-      alert(data.error || 'บันทึกข้อมูลไม่สำเร็จ');
+      showToast(data.error || 'บันทึกข้อมูลไม่สำเร็จ', 'error');
     }
   } catch (err) {
-    alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
   } finally {
     btn.disabled = false;
-  }
-}
   }
 }
 
@@ -589,20 +650,20 @@ async function deleteProposal(id) {
     });
     const data = await res.json();
     if (data.success) {
-      alert('ลบข้อมูลเรียบร้อยแล้ว');
+      showToast('ลบข้อมูลเรียบร้อยแล้ว', 'success');
       await loadProposals();
     } else {
-      alert(data.error || 'สิทธิ์ไม่เพียงพอสำหรับการลบ');
+      showToast(data.error || 'สิทธิ์ไม่เพียงพอสำหรับการลบ', 'error');
     }
   } catch (e) {
-    alert('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อ', 'error');
   }
 }
 
 // ─── EXPORT TO EXCEL (Strict: NO Budget Column) ──────────────
 function exportToExcel() {
   if (filteredProposals.length === 0) {
-    return alert('ไม่มีข้อมูลสำหรับส่งออก');
+    return showToast('ไม่มีข้อมูลสำหรับส่งออก', 'warning');
   }
 
   const exportData = filteredProposals.map((p, idx) => ({
@@ -711,12 +772,12 @@ function resetManageNewsForm() {
 async function handleManageNewsSubmit(e) {
   e.preventDefault();
   const token = localStorage.getItem('sala_token');
-  if (!token) return alert('กรุณาเข้าสู่ระบบเจ้าหน้าที่ก่อนดำเนินการ');
+  if (!token) return showToast('กรุณาเข้าสู่ระบบเจ้าหน้าที่ก่อนดำเนินการ', 'warning');
 
   const id = document.getElementById('manageNewsId').value.trim();
   const title = document.getElementById('manageNewsTitle').value.trim();
   const detail = document.getElementById('manageNewsDetail').value.trim();
-  if (!title || !detail) return alert('กรุณากรอกข้อมูลให้ครบถ้วน');
+  if (!title || !detail) return showToast('กรุณากรอกข้อมูลให้ครบถ้วน', 'warning');
 
   const isEditing = Boolean(id);
   const url = isEditing ? `/api/news/${id}` : '/api/news';
@@ -733,21 +794,21 @@ async function handleManageNewsSubmit(e) {
     });
     const data = await res.json();
     if (data.success) {
-      alert(isEditing ? 'แก้ไขประกาศเรียบร้อยแล้ว' : 'เพิ่มประกาศเรียบร้อยแล้ว');
+      showToast(isEditing ? 'แก้ไขประกาศเรียบร้อยแล้ว' : 'เพิ่มประกาศเรียบร้อยแล้ว', 'success');
       resetManageNewsForm();
       await loadManageNewsList();
     } else {
-      alert(data.error || 'ไม่สามารถดำเนินการได้');
+      showToast(data.error || 'ไม่สามารถดำเนินการได้', 'error');
     }
   } catch (err) {
-    alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
   }
 }
 
 async function deleteManageNews(id) {
   if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบประกาศนี้?')) return;
   const token = localStorage.getItem('sala_token');
-  if (!token) return alert('กรุณาเข้าสู่ระบบก่อน');
+  if (!token) return showToast('กรุณาเข้าสู่ระบบก่อน', 'warning');
   try {
     const res = await fetch(`/api/news/${id}`, {
       method: 'DELETE',
@@ -755,12 +816,12 @@ async function deleteManageNews(id) {
     });
     const data = await res.json();
     if (data.success) {
-      alert('ลบประกาศเรียบร้อยแล้ว');
+      showToast('ลบประกาศเรียบร้อยแล้ว', 'success');
       await loadManageNewsList();
     } else {
-      alert(data.error || 'ลบประกาศไม่สำเร็จ');
+      showToast(data.error || 'ลบประกาศไม่สำเร็จ', 'error');
     }
   } catch (e) {
-    alert('เกิดข้อผิดพลาด');
+    showToast('เกิดข้อผิดพลาดในการลบประกาศ', 'error');
   }
 }

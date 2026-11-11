@@ -1013,6 +1013,88 @@ textarea.v3-input {
   border-radius: var(--radius-md);
 }
 
+/* ─── BESPOKE TOAST & NOTIFICATION SYSTEM ─────────────────── */
+.sala-toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 99999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-width: 400px;
+  width: calc(100% - 48px);
+  pointer-events: none;
+}
+.sala-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  color: var(--slate-800);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.4;
+  border-left: 4px solid var(--primary);
+  animation: toastSlideIn 0.25s ease-out;
+  transition: all 0.25s ease;
+}
+.sala-toast.error {
+  border-left-color: var(--danger);
+  background: #fef2f2;
+  color: #991b1b;
+}
+.sala-toast.success {
+  border-left-color: var(--success);
+  background: #f0fdf4;
+  color: #166534;
+}
+.sala-toast.warning {
+  border-left-color: var(--warning);
+  background: #fffbeb;
+  color: #92400e;
+}
+.sala-toast-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+.sala-toast.error .sala-toast-icon { color: var(--danger); }
+.sala-toast.success .sala-toast-icon { color: var(--success); }
+.sala-toast.warning .sala-toast-icon { color: var(--warning); }
+.sala-toast-text {
+  flex: 1;
+  font-weight: 500;
+}
+@keyframes toastSlideIn {
+  from { opacity: 0; transform: translateY(-16px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.login-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fef2f2;
+  border: 1.5px solid #fecdd3;
+  color: #991b1b;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+  animation: bannerShake 0.35s ease;
+  text-align: left;
+}
+@keyframes bannerShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
 /* ─── PDPA ERGONOMIC TOUCH CARD ───────────────────────── */
 .pdpa-touch-card {
   display: flex;

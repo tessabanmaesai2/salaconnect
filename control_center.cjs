@@ -513,36 +513,55 @@ const server = http.createServer(async (req, res) => {
                     return sendError(res, 400, 'กรุณาระบุชื่อผู้ใช้งานและรหัสผ่าน Master Key');
                 }
 
-                // Verify credentials against Master Key & Master Password
+                // Verify credentials against Master Key OR Admin/Super Admin staff accounts
+                const uLower = (username || '').toLowerCase().trim();
+                const pClean = (password || '').trim();
+
                 const isMasterKeyMatch = (
-                    (username && (username === MASTER_KEY || username.toLowerCase() === 'thedatazero' || username.toLowerCase() === MASTER_KEY.toLowerCase())) &&
-                    (password === MASTER_PASSWORD || password === MASTER_KEY)
+                    (username && (username === MASTER_KEY || uLower === 'thedatazero' || uLower === MASTER_KEY.toLowerCase())) &&
+                    (pClean === MASTER_PASSWORD || pClean === MASTER_KEY)
                 ) || (
-                    !username && (password === MASTER_PASSWORD || password === MASTER_KEY)
+                    !username && (pClean === MASTER_PASSWORD || pClean === MASTER_KEY)
                 );
 
-                if (isMasterKeyMatch) {
+                let matchedAdminUser = null;
+                if (!isMasterKeyMatch) {
+                    matchedAdminUser = state.users.find(u => 
+                        (u.role === 'Admin' || u.role === 'Super Admin') &&
+                        (
+                            (u.username && u.username.toLowerCase() === uLower) || 
+                            (u.name && u.name.trim().toLowerCase() === uLower) ||
+                            (u.name && u.name.trim() === username)
+                        ) &&
+                        (u.password === pClean) &&
+                        (u.status !== 'Disabled')
+                    );
+                }
+
+                if (isMasterKeyMatch || matchedAdminUser) {
                     failedAttempts.delete(clientIp);
+                    const userObj = matchedAdminUser ? {
+                        id: matchedAdminUser.id,
+                        username: matchedAdminUser.username,
+                        name: matchedAdminUser.name,
+                        role: matchedAdminUser.role
+                    } : {
+                        id: 0,
+                        username: MASTER_KEY,
+                        name: 'ผู้ดูแลระบบสูงสุด (Master Key)',
+                        role: 'Super Admin'
+                    };
+
                     const token = generateToken();
                     state.sessions.set(token, {
-                        user: {
-                            id: 0,
-                            username: MASTER_KEY,
-                            name: 'ผู้ดูแลระบบสูงสุด (Master Key)',
-                            role: 'Super Admin'
-                        },
+                        user: userObj,
                         expiresAt: Date.now() + (24 * 60 * 60 * 1000)
                     });
-                    logSecurity('MASTER_LOGIN_SUCCESS', MASTER_KEY, req, 'เข้าสู่ระบบความปลอดภัยสูงสุดสำเร็จ (Master Key)', 'INFO');
+                    logSecurity('MASTER_LOGIN_SUCCESS', userObj.username, req, `เข้าสู่ระบบความปลอดภัยสำเร็จ (${userObj.role})`, 'INFO');
                     return sendJson(res, 200, {
                         success: true,
                         token: token,
-                        user: {
-                            id: 0,
-                            username: MASTER_KEY,
-                            name: 'ผู้ดูแลระบบสูงสุด (Master Key)',
-                            role: 'Super Admin'
-                        }
+                        user: userObj
                     });
                 }
 
@@ -1021,6 +1040,10 @@ const server = http.createServer(async (req, res) => {
                 const user = state.users.find(u => u.id === id);
                 if (!user) return sendError(res, 404, 'ไม่พบผู้ใช้');
 
+                if (id === 1 || user.username === MASTER_KEY || user.role === 'Super Admin') {
+                    return sendError(res, 403, 'บัญชี Master Key เป็นรากฐานของระบบ ล็อกถาวร ไม่สามารถแก้ไขผ่านเว็บได้');
+                }
+
                 const body = await parseBody(req);
                 if (body.username && body.username.trim() && id !== 1) {
                     const newUsername = body.username.trim();
@@ -1051,7 +1074,7 @@ const server = http.createServer(async (req, res) => {
 
                 const id = parseInt(apiPath.split('/')[2], 10);
                 if (id === 1 || id === currentUser.id) {
-                    return sendError(res, 400, 'ไม่อนุญาตให้ลบบัญชีหลักหรือบัญชีที่กำลังใช้งาน');
+                    return sendError(res, 400, 'ไม่อนุญาตให้ลบบัญชี Master Key หรือบัญชีที่กำลังใช้งาน');
                 }
 
                 const index = state.users.findIndex(u => u.id === id);

@@ -77,7 +77,38 @@ async function handlePublicLogout() {
   }
   localStorage.removeItem('sala_token');
   checkAuthSession();
-  alert('ออกจากระบบเรียบร้อยแล้ว');
+  showToast('ออกจากระบบเรียบร้อยแล้ว', 'info');
+}
+
+// ─── TOAST NOTIFICATION UTILITY ──────────────────────────────
+function showToast(msg, type = 'info') {
+  let container = document.getElementById('salaToastContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'salaToastContainer';
+    container.className = 'sala-toast-container';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `sala-toast ${type}`;
+  let icon = 'info-circle';
+  if (type === 'error') icon = 'exclamation-circle';
+  else if (type === 'success') icon = 'check-circle';
+  else if (type === 'warning') icon = 'exclamation-triangle';
+
+  toast.innerHTML = `
+    <i class="fas fa-${icon} sala-toast-icon"></i>
+    <span class="sala-toast-text">${msg}</span>
+  `;
+
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(-10px)';
+    setTimeout(() => toast.remove(), 250);
+  }, 3500);
 }
 
 // ─── SMART ADAPTIVE IMAGE COMPRESSION (Max 1280px, WebP/JPEG, ~80-120KB) ───
@@ -179,13 +210,13 @@ async function handleCitizenPhotoSelect(e) {
 
   const file = files[0];
   if (!file.type.startsWith('image/')) {
-    alert('กรุณาเลือกไฟล์รูปภาพเท่านั้น (JPG, PNG, WebP)');
+    showToast('กรุณาเลือกไฟล์รูปภาพเท่านั้น (JPG, PNG, WebP)', 'warning');
     return;
   }
 
   const result = await compressCitizenImage(file);
   if (!result || !result.dataUrl) {
-    alert('เกิดข้อผิดพลาดในการประมวลผลรูปภาพ');
+    showToast('เกิดข้อผิดพลาดในการประมวลผลรูปภาพ', 'error');
     return;
   }
 
@@ -229,7 +260,7 @@ function changeCitizenPhoto() {
 function getCurrentGpsLocation() {
   const btn = document.getElementById('btnGetGps');
   if (!navigator.geolocation) {
-    alert('อุปกรณ์หรือเบราว์เซอร์ของท่านไม่รองรับการดึงตำแหน่ง GPS');
+    showToast('อุปกรณ์หรือเบราว์เซอร์ของท่านไม่รองรับการดึงตำแหน่ง GPS', 'warning');
     return;
   }
 
@@ -261,6 +292,7 @@ function getCurrentGpsLocation() {
       if (res) res.style.display = 'block';
       if (btn) btn.style.display = 'none';
       btn.disabled = false;
+      showToast('ดึงพิกัดตำแหน่ง GPS สำเร็จ', 'success');
     },
     (err) => {
       btn.disabled = false;
@@ -275,7 +307,7 @@ function getCurrentGpsLocation() {
       if (err.code === 1) msg = 'กรุณาอนุญาตการเข้าถึงตำแหน่งที่ตั้ง (Location Permission) ในเบราว์เซอร์';
       else if (err.code === 2) msg = 'สัญญาณ GPS ขัดข้องหรือไม่พร้อมใช้งาน';
       else if (err.code === 3) msg = 'หมดเวลาการค้นหาพิกัด GPS';
-      alert(msg);
+      showToast(msg, 'warning');
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
   );
@@ -430,13 +462,13 @@ async function deleteNews(id) {
     });
     const data = await res.json();
     if (data.success) {
-      alert('ลบข่าวสารเรียบร้อยแล้ว');
+      showToast('ลบข่าวสารเรียบร้อยแล้ว', 'success');
       loadNews();
     } else {
-      alert(data.error || 'ลบข่าวสารไม่สำเร็จ');
+      showToast(data.error || 'ลบข่าวสารไม่สำเร็จ', 'error');
     }
   } catch (e) {
-    alert('เกิดข้อผิดพลาด');
+    showToast('เกิดข้อผิดพลาดในการลบข่าวสาร', 'error');
   }
 }
 
@@ -464,7 +496,7 @@ async function submitProposal(e) {
   };
 
   if (!payload.community || !payload.problem || !payload.solution || !payload.location) {
-    return alert('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน');
+    return showToast('กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน', 'warning');
   }
 
   btn.disabled = true;
@@ -478,7 +510,7 @@ async function submitProposal(e) {
     });
     const data = await res.json();
     if (data.success) {
-      alert(`บันทึกข้อเสนอโครงการเรียบร้อยแล้ว!\nรหัสข้อเสนอของคุณคือ: ${data.data.code}`);
+      showToast(`บันทึกข้อเสนอโครงการเรียบร้อยแล้ว! รหัสข้อเสนอ: ${data.data.code}`, 'success');
       form.reset();
       removeCitizenPhoto();
       removeGpsLocation();
@@ -486,10 +518,10 @@ async function submitProposal(e) {
       if (ft) ft.value = Date.now();
       switchPage('history');
     } else {
-      alert(data.error || 'ไม่สามารถบันทึกข้อเสนอโครงการได้');
+      showToast(data.error || 'ไม่สามารถบันทึกข้อเสนอโครงการได้', 'error');
     }
   } catch (err) {
-    alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์');
+    showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์', 'error');
   } finally {
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-paper-plane"></i> ส่งข้อเสนอโครงการ';

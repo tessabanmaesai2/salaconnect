@@ -59,31 +59,28 @@
         ระบบบริหารจัดการข้อเสนอโครงการ เทศบาลตำบลแม่สาย
       </p>
 
-      <form id="formStaffGateLogin" onsubmit="handleGateLogin(event)" style="text-align: left;">
+      <form id="formStaffGateLogin" onsubmit="handleGateLogin(event)" style="text-align: left;" autocomplete="off">
         <div class="form-group">
           <label class="form-label">ชื่อผู้ใช้งาน (Username) หรือ ชื่อเจ้าหน้าที่ <span class="req">*</span></label>
-          <input type="text" id="gateUser" class="v3-input" required placeholder="ระบุ admin หรือ ชื่อเจ้าหน้าที่" autocomplete="username">
+          <input type="text" id="gateUser" name="staff_login_user" class="v3-input" required placeholder="ระบุชื่อผู้ใช้งานเจ้าหน้าที่" autocomplete="off" readonly onfocus="this.removeAttribute('readonly');" value="">
         </div>
         <div class="form-group">
           <label class="form-label">รหัสผ่าน (Password) <span class="req">*</span></label>
           <div style="position: relative;">
-            <input type="password" id="gatePass" class="v3-input" required placeholder="รหัสผ่าน" autocomplete="current-password" style="padding-right: 42px;">
+            <input type="password" id="gatePass" name="staff_login_pass" class="v3-input" required placeholder="รหัสผ่าน" autocomplete="new-password" readonly onfocus="this.removeAttribute('readonly');" style="padding-right: 42px;" value="">
             <button type="button" onclick="togglePasswordVisibility('gatePass', 'gatePassEye')" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--slate-400); cursor: pointer; padding: 4px;" title="แสดง/ซ่อนรหัสผ่าน">
               <i class="fas fa-eye" id="gatePassEye"></i>
             </button>
           </div>
         </div>
+        <div id="loginErrorMsg" class="login-error-banner" style="display: none;">
+          <i class="fas fa-exclamation-circle" style="color: var(--danger); font-size: 1.1rem;"></i>
+          <span id="loginErrorText"></span>
+        </div>
+
         <button type="submit" id="btnGateSubmit" class="btn-v3-pill" style="width: 100%; margin-top: 10px;">
           <i class="fas fa-sign-in-alt"></i> เข้าสู่ระบบจัดการ
         </button>
-
-        <div style="margin-top: 14px; font-size: 0.78rem; color: var(--slate-600); background: #f8fafc; border: 1px solid var(--slate-200); border-radius: 8px; padding: 10px 12px; text-align: left; line-height: 1.5;">
-          <div style="font-weight: 700; color: var(--primary-dark); margin-bottom: 3px;">
-            <i class="fas fa-key" style="color: var(--gold);"></i> บัญชีเจ้าหน้าที่สำหรับทดสอบเข้าระบบ:
-          </div>
-          <div>• ชื่อผู้ใช้: <strong>admin</strong> (หรือ <strong>ผู้ดูแลระบบ (Admin)</strong>)</div>
-          <div>• รหัสผ่าน: <strong>19842528</strong></div>
-        </div>
       </form>
     </div>
   </div>
