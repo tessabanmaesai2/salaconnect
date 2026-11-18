@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   salaconnect:
     build: .
@@ -7,13 +5,14 @@ services:
     restart: always
     ports:
       - "3405:3405"
+    env_file:
+      - .env
     environment:
       - PORT=3405
       - NODE_ENV=production
-      - MASTER_KEY=thedatazero
-      - MASTER_PASSWORD=Kn123990002466119842528
     volumes:
       - ./data:/app/data
-      - ./public/uploads:/app/public/uploads
-
-
+      - ./public:/app/public
+      - ./src:/app/src
+      - ./control_center.cjs:/app/control_center.cjs
+      - ./server.cjs:/app/server.cjs

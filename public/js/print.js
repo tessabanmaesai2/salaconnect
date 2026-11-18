@@ -214,7 +214,8 @@ async function loadSettings() {
 
 async function loadProposals() {
   try {
-    const res = await fetch(API_BASE + '/proposals');
+    const tok = localStorage.getItem('sala_token');
+    const res = await fetch(API_BASE + '/proposals', { headers: tok ? { 'Authorization': `Bearer ${tok}` } : {} });
     const data = await res.json();
     if (data.success && data.data) {
       allProposals = data.data;

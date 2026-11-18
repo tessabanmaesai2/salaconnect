@@ -552,7 +552,8 @@ async function loadHistory() {
   const isPublic = !currentUser;
 
   try {
-    const res = await fetch(`${API_BASE}/proposals?public=${isPublic ? 'true' : 'false'}`);
+    const tok = localStorage.getItem('sala_token');
+    const res = await fetch(`${API_BASE}/proposals?public=${isPublic ? 'true' : 'false'}`, { headers: tok ? { 'Authorization': `Bearer ${tok}` } : {} });
     const data = await res.json();
     if (data.success && Array.isArray(data.data)) {
       allProposals = data.data;
